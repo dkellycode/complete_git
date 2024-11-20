@@ -1,0 +1,27 @@
+#Check which repo you are in
+git config --get remote.origin.url
+
+#Change the repo url
+git remote set-url origin https://github.com/dazzd3/{playground/toolkit/etc}.git
+
+#Get full repo origin details
+git remote show origin
+
+#Show fetch and push details
+git remote -v
+
+#Add changes to staging area
+git add . ('.' means all files)
+
+#Commit changes
+git commit -m "message"
+
+#Push changes
+git push origin main
+
+#Pull changes
+git pull origin main
+
+#stash tips
+https://git-scm.com/docs/git-stash
+

@@ -1,0 +1,35 @@
+```{r Namers}
+# Set up some path name parameters
+filenamer<-paste("BIW Import",Sys.Date())
+pathnamer<-paste("C:\\Users\\Darren\\Documents\\R Transfer\\Integration Outputs\\",filenamer,".xlsx")
+```
+
+```{r Datagrab, include = FALSE}
+# Get the data
+biw<-as.data.frame(xl.read.file(file.choose(), password = "CPS2021"))
+
+# Add new blank columns
+biw['Cust No']="" #41
+biw['Stkpt']="" #42
+biw['Ref']="" #43
+
+# Rearrange the table
+import<-biw[c(1,43,2,41,26,27,28,29,31,33,35,36,10,42,5,8)]
+```
+
+```{r Renamecolumns}
+# Change the column headings to match XLSX import format
+colnames(import)<-c('CustOrd','Ref','OrdDate','Cust No','Addr1','Addr2','Addr3','Addr4','City','Pcode','Phone','Email','Freight Value','Stkpt','Prod No','QTY')
+```
+
+```{r addhardcodevalues}
+# Hard code the country value, tidy phone numbers
+import['Cust No']<-c(replicate(nrow(biw),"BIW001"))
+import['Stkpt']<-c(replicate(nrow(biw),"CPS"))
+import['Phone']<-c(gsub("[^0-9]","",import$Phone))
+```
+
+```{r Export}
+# Create the file
+write_xlsx(import,pathnamer)
+```

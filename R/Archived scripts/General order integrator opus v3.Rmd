@@ -1,0 +1,253 @@
+---
+This code will read all files in the EDI/Live/Orders to import folder and do the following
+
+1. Combine all files into one table per customer
+2. Add all missing fields required to meet the Propella .xlsx import format
+3. Hardcode all required values for correct import functionality
+4. Manipulate and clean data
+5. Combine all tables into a single table formatted for Propella .xlsx import
+6. Create the file in EDI/Live/Orders to import/Import Files
+7. Create an archive with today's date in EDI/Live/Orders to import/Archive
+8. Move all files from EDI/Live/Orders to import -> EDI/Live/Orders to import/Archive/YYYY-MM-DD
+
+---
+
+```{r Namers}
+# Set up some path name parameters
+filenamer<-paste("General Customer Import",Sys.Date())
+pathnamer<-paste("I:\\live\\Orders to import\\Import Files",filenamer,".xlsx")
+```
+
+```{r Autofilereader, include = FALSE}
+# Read all files in the staging folder
+farm<-list.files("\\\\CPSL2K12\\PropellaEDI\\live\\Orders to import",pattern = "^Book",full.names=TRUE)%>%lapply(.,read_xlsx)%>%do.call(rbind,.)
+aciem<-list.files("\\\\CPSL2K12\\PropellaEDI\\live\\Orders to import",pattern = "^Order_",full.names=TRUE)%>%lapply(.,read_xlsx, skip = 5)%>%do.call(rbind,.)
+smart<-list.files("\\\\CPSL2K12\\PropellaEDI\\live\\Orders to import",pattern = "-export",full.names=TRUE)%>%lapply(.,read.csv)%>%do.call(rbind,.)%>%as_tibble()
+biw<-list.files("\\\\CPSL2K12\\PropellaEDI\\live\\Orders to import",pattern = "^BIPO",full.names=TRUE)%>%lapply(.,xl.read.file,password = "CPS2021")%>%do.call(rbind,.)%>%as_tibble()
+pgg<-list.files("\\\\CPSL2K12\\PropellaEDI\\live\\Orders to import",pattern = "^CPS \\d{2}",full.names=TRUE)%>%lapply(.,read_xlsx)%>%do.call(rbind,.)
+isl<-list.files("\\\\CPSL2K12\\PropellaEDI\\live\\Orders to import",pattern = "^CPSL-Orders-from-ISL",full.names=TRUE)%>%lapply(.,read.csv)%>%do.call(rbind,.)%>%as_tibble()
+iml<-list.files("\\\\CPSL2K12\\PropellaEDI\\live\\Orders to import",pattern = "^IML GROUP",full.names=TRUE)%>%lapply(.,read_xlsx)%>%do.call(rbind,.)
+sime<-sime<-list.files("\\\\CPSL2K12\\PropellaEDI\\live\\Orders to import",pattern = "^\\d{7}", full.names = TRUE)%>%lapply(.,read_csv)%>%do.call(rbind,.)
+viridian<-list.files("\\\\CPSL2K12\\PropellaEDI\\live\\Orders to import",pattern = "^\\w{7,10} CPS Orders",full.names=TRUE)%>%lapply(.,read_xlsx)%>%do.call(rbind,.)
+
+checklist<-c("farm","aciem","smart","biw","pgg","isl","iml","sime","viridian")
+printdoodah<-function(x){if(exists(x)>0){print(x)}else(NULL)}
+printlist<-lapply(checklist,printdoodah)
+printlist<-str_prefix(checklist,"import")
+```
+
+```{r FARMSOURCE, eval = exists(farm), include = FALSE}
+# Add new blank columns
+farm['Cust No']="" #20
+farm['Stkpt']="" #21
+farm['Ref']="" #22
+farm['Addr4']="" #23
+
+# Rearrange the table
+importfarm<-farm[c(3,22,1,20,10,11,12,23,14,13,15,16,8,21,5,9)]
+
+# Change the column headings to match XLSX import format
+colnames(importfarm)<-c('CustOrd','Ref','OrdDate','Cust No','Addr1','Addr2','Addr3','Addr4','City','Pcode','Phone','Email','Freight Value','Stkpt','Prod No','QTY')
+
+#Hard code and clean
+importfarm['Cust No']<-c(replicate(nrow(farm),"FAR001"))
+importfarm['Stkpt']<-c(replicate(nrow(farm),"CPS"))
+importfarm['OrdDate']<-c(format(importfarm$OrdDate, format = "%d/%m/%Y"))
+importfarm['Pcode']<-c(as.character(importfarm$Pcode))
+importfarm['Phone']<-c(as.character(importfarm$Phone))
+```
+
+```{r ACIEM, eval = exists(aciem), include = FALSE}
+# Add new blank columns
+aciem['Cust No']="" #15
+aciem['Stkpt']="" #16
+aciem['Pcode']="" #17
+aciem['Email']="" #18
+aciem['Order Date']="" #19
+aciem['Ref']="" #20
+
+# Rearrange the table
+importaciem<-aciem[c(1,20,19,15,8,9,10,11,12,17,13,18,6,16,2,4)]
+
+# Change the column headings to match XLSX import format
+colnames(importaciem)<-c('CustOrd','Ref','OrdDate','Cust No','Addr1','Addr2','Addr3','Addr4','City','Pcode','Phone','Email','Freight Value','Stkpt','Prod No','QTY')
+
+#Hard code and clean
+pcodesearch1<-c(str_extract(importaciem$Addr2,"\\d{4}"))
+pcodesearch2<-c(str_extract(importaciem$Addr3,"\\d{4}"))
+pcodesearch3<-c(str_extract(importaciem$Addr4,"\\d{4}"))
+pcodesearch4<-c(str_extract(importaciem$City,"\\d{4}"))
+pcodefinal<-coalesce(pcodesearch1,pcodesearch2,pcodesearch3,pcodesearch4)
+importaciem['OrdDate']<-format(today(), format = "%d/%m/%Y")
+importaciem['Cust No']<-c(replicate(nrow(aciem),"AIM001"))
+importaciem['Stkpt']<-c(replicate(nrow(aciem),"CPS"))
+importaciem['Pcode']<-pcodefinal
+```
+
+```{r SMARTTRADE, eval = exists(smart), include = FALSE}
+# Add new blank columns and take names out of mobile field
+smart['Cust No']="" #17
+smart['Stkpt']="" #18
+smart['Ref']="" #19
+smart['Addr4']="" #20
+smart['Email']="" #21
+
+# Rearrange the table 
+importsmart<-smart[c(2,19,1,17,6,10,11,20,12,13,9,21,15,18,3,16)]
+
+# Change the column headings to match XLSX import format
+colnames(importsmart)<-c('CustOrd','Ref','OrdDate','Cust No','Addr1','Addr2','Addr3','Addr4','City','Pcode','Phone','Email','Freight Value','Stkpt','Prod No','QTY')
+
+#Hard code and clean
+importsmart['Cust No']<-c(replicate(nrow(smart),"SMA001"))
+importsmart['Stkpt']<-c(replicate(nrow(smart),"CPS"))
+bnamelist<-c(smart$businessName)
+indlist<-c(smart$individualName)
+fulldelname<-paste(smart$individualName,"c/-",smart$businessName)
+importsmart['Addr1']<-c(fulldelname)
+importsmart['Phone']<-c(gsub("[a-zA-Z ]", "", importsmart$Phone))
+importsmart['CustOrd']<-c(as.character(importsmart$CustOrd))
+importsmart['Pcode']<-c(as.character(importsmart$Pcode))
+```
+
+```{r BIW, eval = exists(biw), include = FALSE}
+# Add new blank columns
+biw['Cust No']="" #41
+biw['Stkpt']="" #42
+biw['Ref']="" #43
+
+# Rearrange the table
+importbiw<-biw[c(1,43,2,41,26,27,28,29,31,33,35,36,10,42,5,8)]
+
+# Change the column headings to match XLSX import format
+colnames(importbiw)<-c('CustOrd','Ref','OrdDate','Cust No','Addr1','Addr2','Addr3','Addr4','City','Pcode','Phone','Email','Freight Value','Stkpt','Prod No','QTY')
+
+#Hard code and clean
+importbiw['Cust No']<-c(replicate(nrow(biw),"BIW001"))
+importbiw['Stkpt']<-c(replicate(nrow(biw),"CPS"))
+importbiw['Phone']<-c(gsub("[^0-9]","",importbiw$Phone))
+importbiw['OrdDate']<-c(format(ymd(importbiw$OrdDate), format = "%d/%m/%Y"))
+importbiw['Pcode']<-c(as.character(importbiw$Pcode))
+```
+
+```{r PGG, eval = exists(pgg), include = FALSE}
+# Add new blank columns
+pgg['Addr4']="" #14
+pgg['Email']="" #15
+pgg['Stkpt']="" #16
+pgg['Freight']="" #17
+
+# Rearrange the table
+importpgg<-pgg[c(2,4,1,3,8,9,10,14,11,12,13,15,15,17,5,7)]
+
+# Change the column headings to match XLSX import format
+colnames(importpgg)<-c('CustOrd','Ref','OrdDate','Cust No','Addr1','Addr2','Addr3','Addr4','City','Pcode','Phone','Email','Freight Value','Stkpt','Prod No','QTY')
+
+#Hard code and clean
+importpgg['Stkpt']<-c(replicate(nrow(pgg),"CPS"))
+importpgg[1:2]<-apply(importpgg[1:2],2, function (x) as.character(x))
+importpgg['OrdDate']<-c(format(importpgg$OrdDate, format = "%d/%m/%Y"))
+importpgg['Pcode']<-apply(importpgg[10],2, function (x) as.character(x))
+importpgg['Freight Value']<-0
+```
+
+```{r ISL, eval = exists(isl), include = FALSE}
+# Add new blank columns
+isl['Ref']="" #18
+isl['Cust No']="" #19
+isl['Email']="" #20
+isl['Stkpt']="" #21
+
+# Rearrange the tab
+importisl<-isl[c(1,18,2,19,9,10,11,12,13,15,16,20,7,21,4,3)]
+
+# Change the column headings to match XLSX import format
+colnames(importisl)<-c('CustOrd','Ref','OrdDate','Cust No','Addr1','Addr2','Addr3','Addr4','City','Pcode','Phone','Email','Freight Value','Stkpt','Prod No','QTY')
+
+#Hard code and clean
+importisl['Cust No']<-c(replicate(nrow(isl),"INV001"))
+importisl['Stkpt']<-c(replicate(nrow(isl),"CPS"))
+importisl[10:11]<-lapply(importisl[10:11], function (x) as.character(x))
+importisl['Phone']<-c(as.character(importisl$Phone))
+```
+
+```{r IML, eval = exists(iml), include = FALSE}
+# Add new blank columns
+iml['Ref']<-"" #17
+iml['Addr4']="" #18
+iml['Email']="" #19
+iml['Stkpt']="" #20
+
+# Rearrange the table
+importiml<-iml[c(3,17,1,2,10,11,12,18,13,14,15,19,8,20,4,6)]
+
+# Change the column headings to match XLSX import format
+colnames(importiml)<-c('CustOrd','Ref','OrdDate','Cust No','Addr1','Addr2','Addr3','Addr4','City','Pcode','Phone','Email','Freight Value','Stkpt','Prod No','QTY')
+
+#Hard code and clean
+importiml['CustOrd']<-c(as.character(importiml$CustOrd))
+importiml['Cust No']<-c(gsub("IML","IML001",importiml$`Cust No`))
+importiml['Stkpt']<-c(replicate(nrow(iml),"CPS"))
+importiml['Pcode']<-c(as.character(importiml$Pcode))
+```
+
+```{r SIME DERBY, eval = exists(sime), include = FALSE}
+# Rearrange the table
+importsime<-as_tibble(sime)
+
+# Change the column headings to match XLSX import format
+colnames(importsime)<-c('CustOrd','Ref','OrdDate','Cust No','Addr1','Addr2','Addr3','Addr4','City','Pcode','Phone','Email','Freight Value','Stkpt','Prod No','QTY')
+
+#Hard code and clean
+importsime['CustOrd']<-c(as.character(importsime$CustOrd))
+importsime['Pcode']<-apply(importsime[10],2, function (x) as.character(x))
+```
+
+```{r VIRIDIAN, eval = exists(viridian), include = FALSE}
+# Add new blank columns
+viridian['Red']<-"" #16
+viridian['Ord Date']="" #17
+viridian['Cust No']="" #18
+viridian['Addr1']="" #19
+viridian['Addr4']="" #20
+viridian['Freight Value']="" #21
+viridian['Stkpt']="" #22
+
+# Rearrange the table
+importviridian<-viridian[c(2,16,17,18,19,6,9,20,10,11,12,14,21,22,3,8)]
+
+# Change the column headings to match XLSX import format
+colnames(importviridian)<-c('CustOrd','Ref','OrdDate','Cust No','Addr1','Addr2','Addr3','Addr4','City','Pcode','Phone','Email','Freight Value','Stkpt','Prod No','QTY')
+
+#Hard code and clean
+importviridian['OrdDate']<-c(format(today(), format = "%d/%m/%Y"))
+importviridian['Cust No']<-c(replicate(nrow(viridian),"VGL001"))
+importviridian['Addr1']<-c(paste(viridian$`First Name`," ",viridian$`Last Name`))
+importviridian['Stkpt']<-c(replicate(nrow(viridian),"CPS"))
+importviridian['Pcode']<-apply(importviridian[10],2, function (x) as.character(x))
+importviridian['Freight Value']<-0
+```
+
+```{r Combineprint}
+importcombined<-printlist%>%reduce(full_join)
+importcombined['Prod No']<-apply(importcombined[15],2, function (x) toupper(x))
+importcombined<-left_join(importcombined,generalfreight, by = c("Prod No" = "Product Code"))%>%.[c(1:12,18,14:16)]
+importcombined[6:9]<-apply(importcombined[6:9],2, function (x) gsub("\\d{4}","",x))
+importcombined%>%write_xlsx(.,paste("\\\\CPSL2K12\\PropellaEDI\\live\\Orders to import\\Import Files\\","General order import99",today(),".xlsx"))
+```
+
+```{r Archive raw files}
+# Move the raw order files to an archive folder
+archivetoday<-(paste0("\\\\CPSL2K12\\PropellaEDI\\live\\Orders to import\\Archive\\",today()))
+archivelist<-list.files("\\\\CPSL2K12\\PropellaEDI\\live\\Orders to import", full.names = TRUE)%>%.[!file.info(.)$isdir]
+dir.create(archivetoday)
+file.move(archivelist,archivetoday, overwrite = FALSE)
+```
+
+```{r, Autofilereader, eval=TRUE}
+
+```
+
+sime<-sime<-list.files("\\\\CPSL2K12\\PropellaEDI\\live\\Orders to import",pattern = "\\d{7}", full.names = TRUE)%>%setdiff(.,c(list.files("\\\\CPSL2K12\\PropellaEDI\\live\\Orders to import",pattern = "BIPO",full.names=TRUE),list.files("\\\\CPSL2K12\\PropellaEDI\\live\\Orders to import",pattern = "Order_",full.names=TRUE)))%>%lapply(.,read_csv)%>%do.call(rbind,.)
+
+printlist<-list(importaciem,importbiw, importfarm, importsmart, importpgg, importisl, importiml, importsime, importviridian)

@@ -1,0 +1,26 @@
+```{r weekly.report, echo = F, include = F}
+try({
+nzsalesweekly<-list.files('/Users/d3ops/Google Drive/Shared drives/Operations/Weekly Report/Weekly/', pattern = 'd3_New', full.names = T, recursive = F)%>%read_xlsx(., skip = 7)%>%.[c(1:3)]
+ausalesweekly<-list.files('/Users/d3ops/Google Drive/Shared drives/Operations/Weekly Report/Weekly/', pattern = 'd3_Australia', full.names = T, recursive = F)%>%read_xlsx(., skip = 7)
+nzsalesmonthly<-list.files('/Users/d3ops/Google Drive/Shared drives/Operations/Weekly Report/Monthly/', pattern = 'd3_Australia', full.names = T, recursive = F)%>%read_xlsx()
+ausalesmontlhy<-list.files('/Users/d3ops/Google Drive/Shared drives/Operations/Weekly Report/Monthly/', pattern = 'd3_Australia', full.names = T, recursive = F)%>%read_xlsx()
+})
+```
+
+```{r weekly.data.manip, echo = F, include = F}
+colnames(nzsalesweekly)<-c('Customer','Week TY','Week LY')
+nzsalesweekly[,2:3]<-sapply(nzsalesweekly[,2:3], as.numeric)#%>%format(round(.,2), nsmall = 2)
+nzsalesweekly[,2:3]<-sapply(nzsalesweekly[,2:3], as.numeric)
+exclusions<-nzsalesweekly[(which(nzsalesweekly$Customer %in% c('D3 Australia Pty Limted','d3 China Co. Ltd.','HiTech Therapy','KineMed S.A.','Rebel Sport New Zealand','Red Athletic Ltd.', 'New Zealand Medical & Diagnostics Limited', 'd3 UK and Europe'))),]%>%arrange(desc(get('Week TY')))
+nzsalesweekly<-setdiff(nzsalesweekly,exclusions)%>%arrange(desc(get('Week TY')))%>%adorn_totals(., 'row')
+exclusions<-exclusions%>%arrange(desc(get('Week TY')))%>%adorn_totals(., 'row')
+```
+
+```{r write.report, echo = F, include = F}
+dataset<-list('NZ General' = nzsalesweekly, 'Other Weekly' = exclusions)
+write.xlsx(dataset,paste0('/Users/d3ops/Google Drive/Shared drives/Operations/Weekly Report/Weekly/Weekly_summary',Sys.Date(),'.xlsx'))
+#dir.create('/Users/d3ops/Google Drive/Shared drives/Operations/Weekly Report/Weekly/Archive/')
+file.move(list.files('/Users/d3ops/Google Drive/Shared drives/Operations/Weekly Report/Weekly/', pattern = 'd3', full.names = T),'/Users/d3ops/Google Drive/Shared drives/Operations/Weekly Report/Weekly/Archive/')
+```
+
+test<-rownames(nzsalesweekly)[which.max(nzsalesweekly$ctime)]

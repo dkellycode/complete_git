@@ -1,0 +1,21 @@
+```{r EBOS, echo = F, include = F}
+library(readxl)
+ebospo<-list.files('/Users/d3ops/Library/CloudStorage/GoogleDrive-darren@d3tape.com/Shared drives/Orders/New Zealand/EBOS', pattern = '[^\\d{4}]*.xlsm', include.dirs = F, full.names = T)%>%.[-c(1:6)]
+ebostibble<-ebospo%>%lapply(.,read_excel, range = cell_cols("B:N"),col_names = F)%>%do.call(rbind,.)
+```
+
+```{r table.edit, echo = F, include = F}
+startdate<-as.Date('2023/05/01')
+daterange<-difftime(today(),startdate)
+totaldays<-unlist(str_extract_all(daterange,"[0-9]"))%>%str_flatten()
+totalmonths<-round(as.numeric(totaldays)/30.4,1)
+ebostibble<-ebostibble[c(grep("\\d{8}",ebostibble$...1)),]
+ebosdemand<-aggregate(as.numeric(ebostibble$...8), by = list(code = ebostibble$...1, description = ebostibble$...3, colour = ebostibble$...4, carton_qty = ebostibble$...7), FUN=sum)%>%arrange(.,code)%>%rename(.,'total' = x)
+#ebosdemand<-ebostibble[c(1:3,8)]
+#ebosdemand[4]<-apply(ebosdemand[4], 2, function(x) as.numeric(x))
+ebos_forecast<-mutate(ebosdemand, per_mth = round(total/totalmonths,0), ctns_per_mth = round(per_mth/as.numeric(carton_qty),0))
+```
+
+```{r print, echo = F, include = F}
+write.xlsx(ebos_forecast,paste0('/Users/d3ops/Documents/EBOS_forecast',today(),'.xlsx'))
+```

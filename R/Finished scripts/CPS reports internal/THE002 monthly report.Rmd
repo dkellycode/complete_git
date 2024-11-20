@@ -1,0 +1,19 @@
+```{r Namers}
+# Set up some path name parameters
+filenamer<-paste("THE002 Monthly report",format(Sys.Date(),format="%d %m %Y"))
+pathnamer<-paste("C:\\Users\\Darren\\Desktop\\",filenamer,".xlsx")
+```
+
+```{r Data.grab, include = FALSE}
+# Select the file
+sixteenraw<-as.data.frame(read_xls(file.choose()))
+```
+
+```{r Split.Tables, include = FALSE}
+sheetnamer<-sort(unique(sixteenraw$`DATA TYPE`))
+sixteenfinal<-sixteenraw[c(1:7)]
+sixteenfinal<-group_split(sixteenfinal, sixteenfinal[3])%>%setNames(sheetnamer)
+write_xlsx(.,pathnamer)
+```
+
+

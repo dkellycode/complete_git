@@ -1,0 +1,106 @@
+```{r read.xml, echo =F, include = F}
+library(XML)
+library(xml2)
+wwxml<-read_xml(file.choose())
+wwxml<-xmlTreeParse(wwxml, useInternalNodes = T)
+options(scipen = 999)
+```
+
+```{r data.grab, echo = F, include = F}
+dateclean<-function(x)format(as_date(x), format = "%d/%m/%Y")
+po<-getNodeSet(wwxml,"//DocReferenceID")%>%lapply(xmlValue)
+orderdate<-getNodeSet(wwxml,"//POHeader//OrderDate//DateTime/*[self::Year|self::Month|self::Day]")%>%lapply(xmlValue)%>%str_c(.,collapse = '')%>%dateclean(.)
+duedate<-getNodeSet(wwxml,"//DueDate//DateTime/*[self::Year|self::Month|self::Day]")%>%.[1:3]%>%lapply(xmlValue)%>%str_c(.,collapse = '')%>%dateclean(.)
+deltime<-getNodeSet(wwxml,"//DueDate//DateTime/*[self::Hour|self::Minute]")%>%.[1:2]%>%lapply(xmlValue)%>%str_c(.,collapse = '')
+
+trimmer<-function(x)(as.numeric(x)/10000)
+quantities<-getNodeSet(wwxml, "//POItemList//POItem//OrderQuantity//Quantity//Number//Value")%>%lapply(xmlValue)%>%lapply(trimmer)
+codes<-getNodeSet(wwxml,"//StockCode")%>%lapply(xmlValue)
+
+ordertable<-data.frame(codes=as.numeric(unlist(codes)),quantities=as.numeric(unlist(quantities)))
+```
+
+```{r local.table, echo = F, include = F}
+prodname<-c('rigid','kines','wtrprf','cohesive','eab','ast','icepck','bfees')
+prodcost<-c(393.3,307.80,415.53,191.52,178.98,318.01,59.81,0.00)
+proddesc<-c('d3 RST - Rigid Strapping Tape','d3 K6.0 Kinesiology Tape','d3 X6.0 Waterproof Kinesiology Tape','d3 Cohesive Bandage','d3 Light EAB Spandex Bandage','d3 Athletic Tape','d3 Instant Ice Pack 4pk','Adjustment to Total')
+prodaccts<-c(227010725,225110726,225510725,223010725,224110725,221010725,284110725,41100)
+#prodaccts<-c('227010725 - Rigid - Woolworths','225110726 - Kinesiology - Woolworths','225510725 - Waterproof Kinesiology - Woolworths','223010725 - Cohesive Bandage - Woolworths','224110725 - EAB - Woolworths','221010725 - Athletic Tape - Woolworths','41100 - Bank fees')
+shippercodes<-c(9421903673244,9421903673220,9421905741828,9421903673206,9421034850477,9421905131841,9421034854208,99999)
+wwcodes<-c(479493,601366,082440,757029,141269,846985,547889,999999)
+taxtype<-c(replicate(7,'GST on Income'),'BAS Excluded')
+costtable<-data.frame(wwcodes,shippercodes,proddesc,prodname,prodcost,prodaccts,taxtype)
+```
+
+```{r final.build, echo = F, include = F}
+finaltable<-left_join(ordertable,costtable, by = c('codes' = 'wwcodes'))
+headings<-c('*ContactName','EmailAddress','POAddressLine1','POAddressLine2','POAddressLine3','POAddressLine4','POCity','PORegion','POPostalCode','POCountry','*InvoiceNumber','Reference','*InvoiceDate','*DueDate','InventoryItemCode','*Description','*Quantity','*UnitAmount','Discount','*AccountCode','*TaxType','TrackingName1','TrackingOption1','TrackingName2','TrackingOption2','Currency','BrandingTheme') #27 values
+newcols<-c('a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v')
+finaltable[newcols]<-"NA"
+import<-finaltable[c(9:22,3,4,2,6,24,7,8,25:30)] #27 values
+adjline<-c("NA","NA","NA","NA","NA","NA","NA","NA","NA","NA","NA","NA","NA","NA","NA",'Adjustment to Total',1,0.00,"NA",'41100','BAS Excluded',"NA","NA","NA","NA","NA","NA") #27 values
+names(import)<-headings
+import<-rbind(import,adjline)
+```
+
+```{r write.file, echo = F, include = F}
+lengther<-nrow(import)
+import['*ContactName']=replicate(lengther,'Woolworths Limited')
+import['*InvoiceNumber']=replicate(lengther,paste0('INV-',po))
+import['Reference']=replicate(lengther,(paste0("PO ",po)))
+import['*InvoiceDate']=replicate(lengther,duedate)
+import['*DueDate']=replicate(lengther,format(dmy(duedate)+14, format = "%d/%m/%Y"))
+import['*InvoiceNumber']<-as.character(import$`*InvoiceNumber`)
+
+
+credit<-import
+credit['*InvoiceNumber']<-c(str_replace_all(credit$`*InvoiceNumber`,"INV","CN"))
+creditor<-function(x) as.numeric(x)*-0.2075
+creditvalues<-c(creditor(credit$`*UnitAmount`))
+credit['*UnitAmount']<-c(creditvalues)
+
+combined<-rbind(import,credit)
+
+apply(combined, 2, function (y) (gsub("NA","",y)))%>%write.csv(paste0('/Users/d3ops/Google Drive/Shared drives/Orders/Australia/Woolworths/',po,'_import_',Sys.Date(),'.csv'), row.names = F)
+```
+
+```{r executer, echo = F, include = F}
+all_pos<-list.files("/Users/d3ops/Downloads", pattern = "PurchaseOrder_*", full.names = T)
+lapply(all_pos, file.remove)
+```
+
+#```{r microlistics.order, echo = F, include = F}
+headings<-c('Order Reference','SKU Code','Order Qty','Blank 1','Date Ordered','Blank 2','Contact First Name','Contact Surname','Contact Email','Contact Phone','Address Line 1','Address Line 2','Suburb','State','Postcode','Country','Carrier','Carrier Service Code')
+
+microtable<-combined[c(1:18)]
+microtable<-combined[c(12,15,17,blank,13,blank,1,blank,blank,blank,)]
+microtable['Order Reference']<-c(replicate(nrow(ordertable),po))
+```
+
+#```{r picking.request, echo = F, include = F}
+shippercodes<-c('09421903673244','09421903673220','09421905741828','09421903673206','09421034850477','09421905131841')
+shipperdeets<-c('6 inners / 72 retail units','6 inners / 54 retail units','6 inners / 54 retail units','6 inners / 36 retail units','6 inners / 54 retail units','6 inners / 54 retail units')
+labelsperpallet<-c('2 per pallet, one affixed front and one affixed rear')
+instructions<-c(
+'Single Loscam pallet
+Double shrink wrapped
+Include Pallet label x 2 (attached)'
+)
+tihi<-getNodeSet(wwxml, "//NoteList//*[self::Text]")%>%lapply(xmlValue)
+qty<-c(quantities)
+
+instructable<-costtable[1:6,]%>%mutate(labels=c(labelsperpallet),deets=c(shipperdeets))
+
+picktable<-left_join(ordertable,instructable, by = c("codes" = "wwcodes"))%>%mutate(tihi=c(tihi))%>%.[c(3,4,2,10,11,9)]
+
+names(picktable)<-c('Item Number','Item Description','Qty','Internal coniguration','Ti x Hi','Carton labelling')
+
+deliverto<-c('Woolworths Distribution Centre')
+dcdeets<-c('Sydney NDC - 1944')
+dcaddress<-c('Corner Fairfield & Dursley Road, Yennora, NSW 2161')
+deldate<-duedate
+deltime<-paste(deltime)
+```
+
+
+format(today(), format = "%d/%m/%Y")

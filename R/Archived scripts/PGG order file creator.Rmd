@@ -1,0 +1,34 @@
+```{r Namers}
+# Set up some path name parameters
+filenamer<-paste("PGG Import",Sys.Date())
+pathnamer<-paste("C:\\Users\\Darren\\Documents\\R Transfer\\Integration Outputs\\",filenamer,".xlsx")
+```
+
+```{r Datagrab, include = FALSE}
+# Get the data
+pgg<-as.data.frame(read_xlsx(file.choose()))
+
+# Add new blank columns
+pgg['Addr4']="" #14
+pgg['Email']="" #15
+pgg['Freight Value']="" #16
+pgg['Stkpt']="" #17
+
+# Rearrange the table
+import<-pgg[c(2,4,1,3,8,9,10,14,11,12,13,15,16,17,5,7)]
+```
+
+```{r Renamecolumns}
+# Change the column headings to match XLSX import format
+colnames(import)<-c('CustOrd','Ref','OrdDate','Cust No','Addr1','Addr2','Addr3','Addr4','City','Pcode','Phone','Email','Freight Value','Stkpt','Prod No','QTY')
+```
+
+```{r Adhardcodevalues}
+# Hard code the country value, tidy phone numbers
+import['Stkpt']<-c(replicate(nrow(pgg),"CPS"))
+```
+
+```{r Export}
+# Create the file
+write_xlsx(import,pathnamer)
+```

@@ -1,0 +1,36 @@
+```{r Namers}
+# Set up some path name parameters
+filenamer<-paste("Farm Source Import",Sys.Date())
+pathnamer<-paste("C:\\Users\\Darren\\Documents\\R Transfer\\Integration Outputs\\",filenamer,".xlsx")
+```
+
+```{r Datagrab}
+# Get the data
+farm<-as.data.frame(read_xlsx(file.choose()))
+
+# Add new blank columns
+farm['Cust No']="" #20
+farm['Stkpt']="" #21
+farm['Ref']="" #22
+farm['Addr4']="" #23
+
+# Rearrange the table
+import<-farm[c(3,22,1,20,10,11,12,23,14,13,15,16,8,21,5,9)]
+```
+
+```{r Renamecolumns}
+# Change the column headings to match XLSX import format
+colnames(import)<-c('CustOrd','Ref','OrdDate','Cust No','Addr1','Addr2','Addr3','Adrr4','City','Pcode','Phone','Email','Freight Value','Stkpt','Prod No','QTY')
+```
+
+```{r addhardcodevalues}
+# Hard code the country value, add last names to last name column, update first name column
+import['Cust No']<-c(replicate(nrow(farm),"FAR001"))
+import['Stkpt']<-c(replicate(nrow(farm),"CPS"))
+import['OrdDate']<-c(format(farm[1], format = "%d/%m/%Y"))
+```
+
+```{r Export}
+# Create the file
+write_xlsx(import,pathnamer)
+```

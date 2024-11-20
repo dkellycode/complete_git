@@ -1,0 +1,63 @@
+```{r getfile, echo = F, include = F}
+library(pdftools)
+library(pdftables)
+library(tidyr)
+
+#wwpo<-pdf_text('/Users/d3ops/Library/CloudStorage/GoogleDrive-darren@d3tape.com/Shared drives/d3 Team Drive/Stephen/Australia/Woolworths/Orders/2023/0105991232 CEKRX/WWPO_0105991232.pdf')%>%trimws(.)%>%strsplit(.,'\\n')%>%unlist(.)
+
+wwpo<-pdf_text(file.choose())%>%trimws(.)%>%strsplit(.,'\\n')%>%unlist(.)
+
+prodname<-c('rigid','kines','wtrprf','cohesive','eab','ast','adj')
+prodcost<-c(393.3,307.80,415.53,191.52,178.98,318.01,0.00)
+proddesc<-c('d3 RST - Rigid Strapping Tape','d3 K6.0 Kinesiology Tape','d3 X6.0 Waterproof Kinesiology Tape','d3 Cohesive Bandage','d3 Light EAB Spandex Bandage','d3 Athletic Tape','Adjustment to Total')
+#prodaccts<-c(223010725,225110726,225510725,224110725,227010725,221010725,88600)
+prodaccts<-c('227010725 - Rigid - Woolworths','225110726 - Kinesiology - Woolworths','225510725 - Waterproof Kinesiology - Woolworths','223010725 - Cohesive Bandage - Woolworths','224110725 - EAB - Woolworths','221010725 - Athletic Tape - Woolworths','88600 - Rounding')
+wwcodes<-c(479493,601366,082440,757029,141269,846985,999999)
+taxtype<-c(replicate(6,'GST on Income'),'BAS Excluded')
+costtable<-data.frame(wwcodes,proddesc,prodname,prodcost,prodaccts,taxtype)
+```
+
+```{r data.clean, echo = F, include = F}
+headings<-c('*ContactName','EmailAddress','POAddressLine1','POAddressLine2','POAddressLine3','POAddressLine4','POCity','PORegion','POPostalCode','POCountry','*InvoiceNumber','Reference','*InvoiceDate','*DueDate','InventoryItemCode','*Description','*Quantity','*UnitAmount','Discount','*AccountCode','*TaxType','TrackingName1','TrackingOption1','TrackingName2','TrackingOption2','Currency','BrandingTheme')
+
+po<-str_extract(wwpo[10],'\\d{9}')
+ordate<-str_extract(wwpo[16],"\\d{2}/\\d{2}/\\d{4}")
+deldate<-str_extract(wwpo[17],"\\d{2}/\\d{2}/\\d{4}")
+#duedate<-Sys.Date()+14
+#duedate<-format(duedate, "%d/%m/%Y")
+```
+
+```{r table.clean, echo = F, include = F}
+tablestart<-which(grepl("GTIN/TUN/EAN",wwpo))+4
+tableend<-which(grepl("Total Value of this Purchase Order",wwpo))-4
+ordertable<-wwpo[tablestart:tableend]
+
+tabler<-function(x)as_tibble(x)%>%separate(col = 1, into = c('chaff1','buyer_ref','chaff2','qty','chaff3'), sep = c(34,40,96,100))
+finaltable<-map(ordertable,tabler)%>%reduce(., full_join)
+
+blankqty<-which(lapply(finaltable$qty,nchar) == 0)
+finaltable$qty[blankqty]<-finaltable$qty[blankqty+1]
+finaltable<-filter(finaltable,grepl("\\d{6}",finaltable$buyer_ref))%>%.[c(2,4)]
+finaltable['buyer_ref']<-c(as.double(finaltable$buyer_ref))
+```
+
+```{r import.build, echo = F, include = F}
+neededdata<-right_join(costtable,finaltable, by = c("wwcodes" = "buyer_ref"))
+newcols<-c('a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v')
+neededdata[newcols]<-"NA"
+import<-neededdata[c(8:22,2,7,4,23,5,6,24:29)]
+adjline<-c("NA","NA","NA","NA","NA","NA","NA","NA","NA","NA","NA","NA","NA","NA","NA",'Adjustment to Total',1,0.00,"NA",'88600','BAS Excluded',"NA","NA","NA","NA","NA","NA")
+names(import)<-headings
+import<-rbind(import,adjline)
+```
+
+```{r data.fill, echo = F, include = F}
+lengther<-nrow(import)
+import['*ContactName']=replicate(lengther,'Woolworths Limited')
+import['*InvoiceNumber']=replicate(lengther,po)
+import['Reference']=replicate(lengther,(paste0("PO ",po)))
+import['*InvoiceDate']=replicate(lengther,deldate)
+import['*DueDate']=replicate(lengther,deldate)
+import['*InvoiceNumber']<-as.character(import$`*InvoiceNumber`)
+apply(import, 2, function (y) (gsub("NA","",y)))%>%write.csv(.,paste0('/Users/d3ops/Documents/R/Outputs/',po,'_WWPO_',Sys.Date(),'.csv'), row.names = F)
+```

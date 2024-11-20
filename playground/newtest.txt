@@ -1,0 +1,9 @@
+checking the theory that this will auto-route to the toolkit repo, even though i'm in the playground repo.
+
+Settings at time of push:
+
+origin	https://github.com/dazzd3/toolkit.git (fetch)
+origin	https://github.com/dazzd3/toolkit.git (push)
+
+active dir:
+/Users/d3ops/git_linked/playground

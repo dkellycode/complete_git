@@ -1,0 +1,59 @@
+```{r Libraries, include = FALSE}
+# Libraries you need
+library(writexl)
+library(tidyverse)
+library(dplyr)
+library(stringr)
+library(readxl)
+library(lubridate)
+library(plyr)
+```
+
+```{r Data.grab}
+# Select the file
+raw.table<-as.data.frame("C:\\Users\\Darren\\Desktop\\Weekly despatch - GENERAL.xls")
+prod.type<-as.data.frame("C:\\Users\\Darren\\Desktop\\PRODTYPEALL.csv")
+
+# Add new blank columns
+raw.table['Tracking URL']=""
+```
+
+```{r add.hardcode.values, include = FALSE}
+PHtrackurl<-c("https://www.posthaste.co.nz/phl/servlet/ITNG_TAndTServlet?page=1&VCCA=Enabled&Key_Type=BarCode&barcode_data=")
+raw.table['Tracking URL']=""
+raw.table['Tracking URL']<-PHtrackurl
+
+# Rearrange the table
+raw.export<-raw.table[c(1,2,3,4,5,6,7,9,10,12,13)]
+
+# Change the column headings to match desired output
+colnames(raw.export)<-c('Customer Code','Invoice Number','Customer Order','Reference','Order Status','Invoice Date','Freight Carrier','Product Code','Description','Qty Shipped','Tracking Link')
+colnames(prod.type)<-c('Product Code','Type')
+
+#Add the tracking link column
+raw.export['Tracking Link']=""
+raw.export['Tracking Link']<-c(paste(raw.table$`Tracking URL`,raw.table$`Consignment Number`))
+raw.export<-raw.export%>%mutate(`Order Status` = str_replace(`Order Status`,"Entered","Part Shipped"))
+joined.raw<-join(raw.export,prod.type, by = 'Product Code')%>%filter(., Type != "I")
+```
+
+```{r Export, include = FALSE}
+# Create .xlsx file
+print.export<-subset.data.frame(joined.raw,joined.raw$`Freight Carrier` == "Post Haste")
+print.export %>% 
+  group_by(`Customer Code`) %>% 
+  group_walk(~ write_xlsx(.x,paste0("P:\\CPS Master Docs\\CPS DAILY MASTER DOCS\\Weekly despatch report\\",.y$`Customer Code`," Weekly Despatch Report ",format(today, format="%d %m %Y"),".xlsx")))
+```
+
+
+# Once we start getting drop ship tracking, switch the export chunk to this
+#```{r Export}
+# Create .xlsx file
+#raw.export %>% 
+#   group_by(`Customer Code`) %>% 
+#  group_walk(~ write_xlsx(.x,paste0(.y$`Customer Code`,".xlsx")))
+#```
+
+#3. Specify output file
+
+#raw.export['Tracking Link']<-c('<a href="paste(raw.table$`Tracking URL`,raw.table$Consignment.Number)">Track</a>')

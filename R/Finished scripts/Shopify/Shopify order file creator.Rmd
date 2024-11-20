@@ -1,0 +1,41 @@
+```{r Namers}
+# Set up some path name parameters
+filenamer<-paste("Shopgood Import",Sys.Date())
+pathnamer<-paste("\\\\10.103.128.1\\PropellaEDI\\live\\Shopgood\\",filenamer,".xlsx")
+```
+
+```{r Data.grab}
+# Get the data
+fileselector<-file.info(list.files("C:\\Users\\Darren\\Downloads", pattern = "orders_export", full.names = TRUE))
+fileselector<-rownames(fileselector)[which.max(fileselector$ctime)]
+shopgood<-as.data.frame(fread(fileselector))
+
+# Add new blank columns
+shopgood['Cust No']=""#75
+shopgood['Freight Value']=""#76
+shopgood['Stkpt']=""#77
+
+# Rearrange the table
+import<-shopgood[c(1,52,4,75,35,36,37,38,40,41,44,2,76,77,21,17)]
+```
+
+```{r Rename.columns}
+# Change the column headings to match XLSX import format
+colnames(import)<-c('CustOrd','Ref','Ord Date','Cust No','Addr1','Addr2','Addr3','Addr4','City','Pcode','Phone','Email','Freight Value','Stkpt','Prod No','QTY')
+```
+
+```{r add.hardcode.values}
+# Hard code the country value, add last names to last name column, update first name column
+import['Cust No']<-c(replicate(nrow(shopgood),"SHP001"))
+import['Stkpt']<-c(replicate(nrow(shopgood),"CPS"))
+```
+
+```{r Export, include = FALSE}
+# Create the file
+write_xlsx(import,pathnamer)
+```
+
+```{r Archive files}
+# Move the raw order files to an archive folder
+file.move(fileselector,"\\\\CPSL2K12\\PropellaEDI\\live\\Shopgood\\Archive downloads", overwrite = FALSE)
+```

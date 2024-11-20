@@ -1,0 +1,61 @@
+---
+This code will read the OC Tanner file in your download folder and create 2 separate files.
+  
+  1. The xlsx import file for Propella
+  2. The OC Tanner handback file (awaiting tracking information)
+---
+
+```{r Namers}
+# Set up some path name parameters
+filenamer<-paste("OC Tanner Import",Sys.Date())
+pathnamer<-paste("\\\\CPSL2K12\\PropellaEDI\\live\\OC Tanner\\",filenamer,".xlsx")
+filenamer2<-paste("310905_ASN_MASTER BUILD")
+pathnamer2<-paste("\\\\CPSL2K12\\cpsldata\\CPS Master Docs\\Qantas Orders\\HANDBACKS OC TANNER\\2022\\",filenamer2,".csv")
+```
+
+```{r Datagrab, include = FALSE}
+# Get the data
+octanner<-list.files("C:\\Users\\Darren\\Downloads\\", pattern = "^PO_NZ_0000310905", full.names=TRUE)%>%lapply(.,read_csv)%>%reduce(full_join)
+
+# Add new blank columns
+octanner['Cust No']="" #37
+octanner['Stkpt']="" #38
+octanner['Combined rec name']="" #39
+octanner['AckNumber']="" #40
+octanner['ShipDate']="" #41
+octanner['ShipTime']="" #42
+octanner['Carrier']="" #43
+octanner['TrackingNumber']="" #44
+
+# Hardcode receiver full name
+octanner['Combined rec name']<-c(paste(octanner$FirstName,octanner$LastName))
+
+# Rearrange the tables
+ocimport<-octanner[c(1,2,28,37,39,5,6,8,10,12,19,36,38,26,22)]
+ochandback<-octanner[c(1,21,3,40,22,41,42,43,44)]
+```
+
+```{r Renamecolumns, include = FALSE}
+# Change the column headings to match XLSX import format
+colnames(ocimport)<-c('CustOrd','Ref','Ord Date','Cust No','Addr1','Addr2','Addr3','City','Pcode','Phone','Email','Freight Value','Stkpt','Prod No','QTY')
+colnames(ochandback)<-c('PurchaseOrderNumber','LineNumber','Supplier','AckNumber','Quantity','ShipDate','ShipTime','Carrier','TrackingNumber')
+```
+
+```{r Addhardcodevalues, include = FALSE}
+# Hard code the customer number and stock point
+ocimport['Cust No']<-c(replicate(nrow(octanner),"QNZ001"))
+ocimport['Stkpt']<-c(replicate(nrow(octanner),"CPS"))
+
+ochandback['ShipDate']<-c(format(today(), format = "%Y%m%d"))
+ochandback['Carrier']<-c(replicate(nrow(octanner),"Post Haste"))
+```
+
+```{r Export}
+# Create the file
+write_xlsx(ocimport,pathnamer)
+write.table(ochandback,pathnamer2, sep = ",", col.names=!file.exists(pathnamer2), append = TRUE)
+```
+
+```{r Delete.downloads, include = FALSE}
+list.files("C:\\Users\\Darren\\Downloads\\", pattern = "^PO_NZ_0000310905", full.names=TRUE)%>%file.remove(.)
+```

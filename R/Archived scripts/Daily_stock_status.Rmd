@@ -1,0 +1,21 @@
+```{r in.out, include = FALSE}
+#Read the daiy ISS, refine, hold in R memory to add to master docs
+iss<-list.files("\\\\10.103.128.1\\CPSLDATA\\Product Manager\\inventory_status_update\\",pattern = "ISS", full.names = TRUE)%>%read_xls(.)%>%.[c(1,2,4)]
+iss<-iss%>%mutate(Instock = ifelse(iss$`Qty Avail` <= 0, "OUT", "IN"))%>%left_join(.,prodtype, by = "Product Code")%>%filter(., 'Product Type' == "S")
+dailydate=format(today(), format = "%d/%m/%Y")
+iss<-plyr::rename(iss, c(Instock = dailydate))
+iss<-iss%>%.[c(1,4)]
+```
+
+```{r add.today}
+stocktracker<-read_xlsx("\\\\10.103.128.1\\cpsldata\\Jess\\Dailyin.out\\Stock Availability Tracker.xlsx")
+stocktrackerupdated<-full_join(stocktracker,iss, by = "Product Code")
+write_xlsx(stocktrackerupdated,"\\\\10.103.128.1\\cpsldata\\Jess\\Dailyin.out\\Stock Availability Tracker.xlsx")
+```
+
+```{r write.summary, include = FALSE}
+ins<-rowSums(stocktrackerupdated == "IN")
+outs<-rowSums(stocktrackerupdated == "OUT")
+stocktrackersum<-stocktrackerupdated%>%mutate(Ins=c(ins),Outs=c(outs),Inrate=percent(ins/(ins+outs)))
+stocktrackersum%>%.[c(1,2,ncol(stocktrackersum))]%>%write_xlsx(.,paste("\\\\10.103.128.1\\cpsldata\\Jess\\Dailyin.out\\Stock Availability Summary.xlsx"))
+```

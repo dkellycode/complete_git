@@ -1,0 +1,22 @@
+```{r readers, include = FALSE, echo = FALSE, warning =F ALSE}
+sheets <- excel_sheets("P:\\Jess\\Christmas Forecasting 2022\\Xmas 2022 Forecast - parents added.xlsx")
+forecasts<-lapply(sheets, function (x) read_xlsx("P:\\Jess\\Christmas Forecasting 2022\\Xmas 2022 Forecast - parents added.xlsx", sheet = x))
+names(forecasts)<-sheets
+forecasts<-forecasts[3:12]%>%reduce(full_join)
+forecasts<-forecasts[1:21]
+
+parents<-read_excel("C:\\Users\\Darren\\Desktop\\Parent Codes.xls")
+parents['BRAND']=""
+parents['Supplier Base Cost']=""
+parents['DATA TYPE']=""
+parents<-parents[c(1,20,2,21,22,4:19)]
+
+combined<-rbind(forecasts,parents, by = c("PRODUCT","BRAND","PRODUCT DESCRIPTION","Supplier Base Cost","DATA TYPE","MTD","YTD","LYTD","12 MTHS","JUL","JUN","MAY","APR","MAR","FEB","JAN","DEC","NOV","OCT","SEP","AUG"))
+combined[6:21]<-apply(combined[6:21],2, function (x) as.numeric(x))
+combined[1:5]<-apply(combined[1:5],2, function (x) as.factor(x))
+combinedsum<-combined[c(1,6:21)]%>%group_by(PRODUCT)%>%summarise_all(.,sum)
+write.xlsx(combinedsum,"C:\\Users\\Darren\\Desktop\\combinedforecast.xlsx")
+```
+
+
+combined%>%group_by(PRODUCT)%>%summarise_all(.,sum)

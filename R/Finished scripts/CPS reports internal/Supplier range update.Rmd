@@ -1,0 +1,12 @@
+---
+This code will read the file "Supplier ranges" from the Static lookups folder and write a separate excel file containing range details for each supplier.
+
+Existing files will be overwritten
+---
+
+```{r rangeexporter, include = FALSE}
+supplierrange%>%filter(.,`Product Type` %in% c("S","I","EOL"))%>%select(-8)%>%mutate(., 'CPS' = "")%>%group_by(`Preferred Supplier Description`)%>%group_walk(~ write_xlsx(.x,paste0("P:\\CPS Master Docs\\Supplier Ranges\\",.y$`Preferred Supplier Description`," Range ",".xlsx")))
+```
+
+
+

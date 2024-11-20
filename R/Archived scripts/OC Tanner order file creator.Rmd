@@ -1,0 +1,43 @@
+```{r Namers}
+# Set up some path name parameters
+filenamer<-paste("OC Tanner Import",Sys.Date())
+pathnamer<-paste("I:\\live\\OC Tanner\\",filenamer,".xlsx")
+```
+
+```{r Datagrab, include = FALSE}
+# Get the data
+filestograb<-list.files("C:\\Users\\Darren\\Downloads\\", pattern = "PO_NZ_0000310905", full.names=TRUE)
+filestograb 
+octanner<-lapply(filestograb,read.csv)%>% reduce(full_join)
+
+#octanner<-as.data.frame(read.csv(file.choose()))
+
+# Add new blank columns and create new name field
+octanner['Cust No']=""
+octanner['Stkpt']=""
+octanner['Combined rec name']=""
+octanner['Combined rec name']<-c(paste(octanner$FirstName,octanner$LastName))
+
+# Rearrange the table
+import<-octanner[c(1,2,28,37,39,5,6,8,10,12,19,36,38,26,22)]
+```
+
+```{r Renamecolumns}
+# Change the column headings to match XLSX import format
+colnames(import)<-c('CustOrd','Ref','Ord Date','Cust No','Addr1','Addr2','Addr3','City','Pcode','Phone','Email','Freight Value','Stkpt','Prod No','QTY')
+```
+
+```{r Addhardcodevalues}
+# Hard code the customer number and stock point
+import['Cust No']<-c(replicate(nrow(octanner),"QNZ001"))
+import['Stkpt']<-c(replicate(nrow(octanner),"CPS"))
+```
+
+```{r Export}
+# Create the file
+write_xlsx(import,pathnamer)
+```
+
+```{r Delete.downloads, include = FALSE}
+list.files("I:\\live\\OC Tanner", pattern = "PO_NZ_0000310905", full.names = TRUE)%>%file.remove(.)
+```

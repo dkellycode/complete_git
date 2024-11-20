@@ -1,0 +1,27 @@
+---
+This code will read (after user input) the stock analysis report for last month and this month, then perfomr the below steps.
+
+1. Combine the "No Sales" and "Overstock" tabs.
+2. Compare the two lists and isolate only new codes that have appeared in the current month.
+3. Write an excel file of the new codes (with associated data) into the 'Jess/Monthly Reports' folder with today's date.
+
+---
+
+
+```{r file.reader, include = FALSE}
+sheets<-c("No Sales", "Overstocked")
+
+lastmonth<-file.choose()
+lastmonthtbl<-lapply(sheets, function (x) read_excel(lastmonth, sheet = x))%>%reduce(full_join)%>%as_tibble()
+thismonth<-file.choose()
+thismonthtbl<-lapply(sheets, function (x) read_excel(thismonth, sheet = x))%>%reduce(full_join)%>%as_tibble()
+
+newcodes<-setdiff(thismonthtbl[9],lastmonthtbl[9])#%>%write_xlsx("C:\\Users\\Darren\\Desktop\\Slob changes.xlsx")
+dropouts<-setdiff(lastmonthtbl[9],thismonthtbl[9])
+
+newslob<-rbind(lastmonthtbl,thismonthtbl)%>%left_join(newcodes,.)
+dailydate=format(today(), format = "%d-%m-%Y")
+printpath<-paste("\\\\10.103.128.1\\cpsldata\\Jess\\Monthly Reports\\New Slob ",dailydate,".xlsx")
+write_xlsx(newslob, printpath)
+```
+

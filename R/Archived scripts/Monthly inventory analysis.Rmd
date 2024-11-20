@@ -1,0 +1,29 @@
+```{r Namers}
+# Set up some path name parameters
+filenamer<-paste("Monthly inventory analysis",Sys.Date())
+pathnamer<-paste("P:\\Jess\\Inventory Analysis\\Monthly Reports\\",filenamer,".xlsx")
+```
+
+```{r Datagrab, include = FALSE}
+# Select the files
+sixteenraw<-list.files("P:\\Jess\\Inventory Analysis\\Monthly Reports", pattern = "SAS", full.names = TRUE)%>%lapply(.,read_xls)%>%as.data.frame%>%select(1,3,7)
+stockvaluation<-list.files("P:\\Jess\\Inventory Analysis\\Monthly Reports", pattern = "ISV", full.names = TRUE)%>%lapply(.,read_xls)%>%as.data.frame%>%select(1,2,5,7,13)
+keydates<-list.files("P:\\Jess\\Inventory Analysis\\Monthly Reports", pattern = "Key", full.names = TRUE)%>%lapply(.,read_xls)%>%as.data.frame%>%select(-2)
+names(stockvaluation)[5]<-"Brand Desc"
+names(keydates)<-c("PRODUCT","PRODUCT TYPE","LAST SALE DATE","LAST RECEIPT DATE","PREFERRED SUPPLIER DESCRIPTION","CUSTOMER RANGE","CATEGORY CODE","CATEGORY DESCRIPTION","SUB CATEGORY LVL 1","SUB CATEGORY LVL 2","SUB CATEGORY LVL 3","TOP 120 SELLER")
+```
+
+```{r DFmerge, include = FALSE}
+#Combine all files into the required output format
+combinedreport<-merge.data.frame(stockvaluation,sixteenraw, by  = "PRODUCT")%>%group_split(.,DATA.TYPE)%>%do.call("cbind",.)
+names(combinedreport)<-c("PRODUCT","DESCRIPTION","ONHAND","EXTENSION","BRAND DESC","DATA.TYPE","12MTHS GP","NULL1","NULL2","NULL3","NULL4","NULL5","NULL6","12 MTHS SALES","NULL7","NULL8","NULL9","NULL10","NULL11","NULL12","12MTHS UNITS")
+combinedreport<-select(combinedreport,c("PRODUCT","DESCRIPTION","ONHAND","EXTENSION","BRAND DESC","12MTHS GP","12 MTHS SALES","12MTHS UNITS"))
+finaloutput<-left_join(combinedreport,keydates, by = "PRODUCT")%>%select(12,5,1,2,9,3,4,6,7,8,10,11,13,14,15,16,17,18,19)
+```
+
+```{r Export}
+# Create the file
+write_xlsx(finaloutput,pathnamer)
+```
+
+#finaloutput%>%mutate('MONTHS TO DEPLETION' = finaloutput$ONHAND / (finaloutput$`12MTHS UNITS`/12))

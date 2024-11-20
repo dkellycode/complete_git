@@ -1,0 +1,8 @@
+```{r redreport, echo = F, include = F}
+library(data.table)
+reds<-as_tibble(list.files('/Users/d3ops/Downloads', pattern = 'potocsv', full.names = T)%>%lapply(.,read_csv, show_col_types = F, col_names = F, skip = 1)%>%rbindlist(., fill=T))%>%.[c(4,6,10)]
+names(reds)<-c('ean','desc','qty')
+redsfinal<-reds%>%group_by(desc)%>%summarise(., Total_sales = sum(qty))
+
+mutate(redsfinal, per_mth = Total_sales/2)%>%write.xlsx(.,paste0('/Users/d3ops/Documents/redforecast',Sys.Date(),'.xlsx'))
+```

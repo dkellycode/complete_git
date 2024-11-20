@@ -1,0 +1,49 @@
+```{r Namers}
+# Set up some path name parameters
+filenamer<-paste("Aciem Import",Sys.Date())
+pathnamer<-paste("C:\\Users\\Darren\\Documents\\R\\Live scripts\\Integration Outputs\\",filenamer,".xlsx")
+```
+
+```{r Data.grab, include = FALSE}
+# Get the data
+aciemraw<-as.data.frame(read_xlsx(file.choose()))
+aciem<-aciemraw[-c(1:5),]
+
+# Add new blank columns
+aciem['Cust No']="" #15
+aciem['Stkpt']="" #16
+aciem['Pcode']="" #17
+aciem['Email']="" #18
+aciem['Order Date']="" #19
+aciem['Ref']="" #20
+
+# Rearrange the table
+import<-aciem[c(1,20,19,15,8,9,10,11,12,17,13,18,6,16,2,4)]
+```
+
+```{r Rename.columns}
+# Change the column headings to match XLSX import format
+colnames(import)<-c('CustOrd','Ref','OrdDate','Cust No','Addr1','Addr2','Addr3','Addr4','City','Pcode','Phone','Email','Freight Value','Stkpt','Prod No','QTY')
+```
+
+```{r add.hardcode.values}
+# Hard code the country value, add last names to last name column, update first name column, find postcodes
+pcodesearch1<-c(str_extract(import$Addr3,"\\d{4}"))
+pcodesearch2<-c(str_extract(import$Addr4,"\\d{4}"))
+pcodesearch3<-c(str_extract(import$City,"\\d{4}"))
+pcodefinal<-coalesce(pcodesearch1,pcodesearch2,pcodesearch3)
+import['OrdDate']<-aciemraw[3,2]
+import['Cust No']<-c(replicate(nrow(aciem),"AIM001"))
+import['Stkpt']<-c(replicate(nrow(aciem),"CPS"))
+import['Pcode']<-pcodefinal
+```
+
+```{r Export}
+# Create the file
+write_xlsx(import,pathnamer)
+```
+
+Still to do: add multi-file read
+Cut Postcode values out of address columns
+
+

@@ -1,0 +1,20 @@
+```{r Datagrab, include = FALSE}
+# Select the file
+rawtable<-as.data.frame(file.choose()%>%lapply(.,read_xlsx))
+```
+
+```{r Namers}
+# Set up some path name parameters
+filenamer<-paste("POPSR",Sys.Date())
+pathnamer<-paste("C:\\Users\\Darren\\Desktop\\",filenamer,".csv")
+```
+
+```{r Autofilereader, include = FALSE}
+# Read all files in the staging folder
+rawexport<-as.data.frame(raw.table[c(2,4,8)])%>%filter(., Supplier != "<NA>")
+```
+
+```{r Export}
+# Create the file
+writecsv(raw.export,pathnamer, row.names = FALSE)
+```

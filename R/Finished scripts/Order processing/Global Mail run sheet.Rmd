@@ -1,0 +1,38 @@
+```{r Libraries, include = FALSE}
+# Libraries you need
+library(writexl)
+library(tidyverse)
+library(dplyr)
+library(stringr)
+library(readxl)
+library(lubridate)
+library(data.table)
+```
+
+```{r Namers, include = FALSE}
+# Set up some path name parameters
+filenamer2<-paste("Master Template Global Mail",Sys.Date())
+pathnamer2<-paste("C:\\Users\\Darren\\Documents\\R\\Live scripts\\Integration Outputs\\",filenamer,".xlsx")
+```
+
+```{r Data.grab, include = FALSE}
+# Get the data
+global<-as.data.frame(fread(file.choose()))
+
+# Add new blank columns
+global['Building']<-""#48
+global['Currency']<-""#49
+
+exportglobal<-global[c(46,6,48,10,11,12,14,13,6,8,19,49,26)]
+```
+
+```{r add.hardcode.values, include = FALSE}
+# Hard code the country value
+exportglobal['Currency']<-c(replicate(nrow(global),"AUD"))
+colnames(exportglobal)<-c("Delivery Reference","Name","Building","Street Address","Suburb","State","PostCode","Country","Contact","Phone","Goods Desc","Currency","Value")
+```
+
+```{r Export}
+# Create the file
+write_xlsx(exportglobal,pathnamer)
+```

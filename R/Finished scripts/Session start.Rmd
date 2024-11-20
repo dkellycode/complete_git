@@ -1,0 +1,41 @@
+```{r librariesloader, include = FALSE, echo = FALSE}
+# Libraries you need- run this every time you open RStudio
+library(writexl)
+library(readxl)
+library(tidyverse)
+library(lubridate)
+library(filesstrings)
+library(stringr)
+library(data.table)
+library(dplyr)
+library(excel.link)
+library(stringr.tools)
+library(xlsx)
+library(scales)
+library(mgsub)
+library(magick)
+library(gsheet)
+library(exiftoolr)
+
+#Clear List of objects
+rm(list = ls())
+gc()
+
+#Static object loads
+prodtype<-read_xlsx("C:\\Users\\Darren\\Documents\\R Transfer\\Static lookups\\PRODTYPEALL.xlsx")
+supplierrange<-read_xls("C:\\Users\\Darren\\Documents\\R Transfer\\Static lookups\\Supplier ranges.xls")
+customerrange<-read_xls("C:\\Users\\Darren\\Documents\\R Transfer\\Static lookups\\Customer range.xls")
+generalfreight<-read_xls("C:\\Users\\Darren\\Documents\\R Transfer\\Static lookups\\Freight master.xls")
+boms<-read_xls("C:\\Users\\Darren\\Documents\\R Transfer\\Static lookups\\BOM.xls")
+couriers<-read_xls("C:\\Users\\Darren\\Documents\\R Transfer\\Static lookups\\iSAMS Courier Codes.xls")
+micostores<-gsheet2tbl("https://docs.google.com/spreadsheets/d/1lqrj2Bvs5yHZOWHaZt9cZ6rTcCEM1_JVOo_qLX_yeCc/edit#gid=0")
+```
+
+#Load if required
+library(DT)
+library(plyr)
+
+#Tips
+str() returns a list of all columns, their type, and a sample of data
+rm(list = ls()) clears all objects in the environment
+gc() clears memory if objects are no longer in use

@@ -1,0 +1,41 @@
+```{r Namers}
+# Set up some path name parameters
+filenamer<-paste("Smart Trade Import",Sys.Date())
+pathnamer<-paste("C:\\Users\\Darren\\Documents\\R Transfer\\Integration Outputs\\",filenamer,".xlsx")
+```
+
+```{r Datagrab}
+# Get the data
+smart<-as.data.frame(read.csv(file.choose()))
+
+# Add new blank columns and take names out of mobile field
+smart['Cust No']="" #17
+smart['Stkpt']="" #18
+smart['Ref']="" #19
+smart['Addr4']="" #20
+smart['Email']="" #21
+
+# Rearrange the table 
+import<-smart[c(2,19,1,17,6,10,11,20,12,13,9,21,15,18,3,16)]
+```
+
+```{r Renamecolumns}
+# Change the column headings to match XLSX import format
+colnames(import)<-c('CustOrd','Ref','OrdDate','Cust No','Addr1','Addr2','Addr3','Addr4','City','Pcode','Phone','Email','Freight Value','Stkpt','Prod No','QTY')
+```
+
+```{r addhardcodevalues, include = FALSE}
+# Hard code the country value, clean any names out of phone number field
+import['Cust No']<-c(replicate(nrow(smart),"SMA001"))
+import['Stkpt']<-c(replicate(nrow(smart),"CPS"))
+bnamelist<-c(smart$businessName)
+indlist<-c(smart$individualName)
+fulldelname<-paste(smart$individualName,"c/-",smart$businessName)
+import['Addr1']=fulldelname
+import['Phone']<-c(gsub("[a-zA-Z ]", "", import$Phone))
+```
+
+```{r Export}
+# Create the file
+write_xlsx(import,pathnamer)
+```

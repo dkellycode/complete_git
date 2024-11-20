@@ -1,0 +1,113 @@
+Daily Status Update
+```{r}
+library(data.table)
+library(purrr)
+library(tidyverse)
+library(readxl)
+library(lubridate)
+##functions
+pathPrep <- function(path = "clipboard") {
+    y <- if (path == "clipboard") {
+        readClipboard()
+    } else {
+        cat("Please enter the path:\n\n")
+        readline()
+    }
+    x <- chartr("\\", "/", y)
+    writeClipboard(x)
+    return(x)
+}
+
+cln_code <- function(code){
+ code %>% str_trim() %>% toupper() %>% return()
+}
+```
+
+
+Loading all the required docs
+```{r}
+status_update_dir <- "P:/Product Manager/inventory_status_update"
+stock_doc_dir <- "P:/CPS Master Docs/Out of Stock Report"
+##iss import
+iss <- status_update_dir %>% list.files(., pattern = "ISS", full.names = T) %>% str_split(., "/") %>% sapply(., function(x) x[length(x)]) %>% sort() %>% .[length(.)] %>% list.files(status_update_dir, pattern = ., full.names = T) %>% read_xls
+##propella data import
+all_propella_products <- status_update_dir %>% list.files(., pattern = "status_export", full.names = T) %>% read_xlsx
+##bkr
+bkr <- status_update_dir %>% list.files(., pattern = "BKR", full.names = T) %>% str_split(., "/") %>% sapply(., function(x) x[length(x)]) %>% sort() %>% .[length(.)] %>% list.files(status_update_dir, pattern = ., full.names = T) %>% read_xls
+
+#oos_master <- list.files(stock_doc_dir, full = T, pattern = "MASTER") %>% read_xlsx(.)
+```
+
+```{r}
+##joining iss with product data
+iss <- iss %>% mutate(join = cln_code(`Product Code`))
+all_propella_products <- all_propella_products %>% mutate(join = cln_code(`Product Code`))
+
+if(sum(!(iss$join %in% all_propella_products$join)) > 0){
+  warning(iss$join[!(iss$join %in% all_propella_products$join)])
+}
+
+iss_range_joined <-  iss %>% left_join(., all_propella_products, by = "join")
+
+##sorting out parent codes
+bkr_iss_joined <- bkr %>% mutate(join  = cln_code(`PRODUCT CODE`)) %>% select(`PRODUCT CODE`, PARENT, QUANTITY, join) %>% 
+  left_join(., iss, by = "join") %>% left_join(., all_propella_products, by = "join")
+parent_status <- bkr_iss_joined %>% filter(`Product Type` != "O") %>% 
+  select(PARENT, `PRODUCT CODE`, QUANTITY, `Qty Avail`, join) %>% 
+  mutate("componenets_available" = `Qty Avail`/QUANTITY) %>%
+  group_by(PARENT) %>% 
+  summarise(min_comp = min(componenets_available)) %>%
+  mutate(status_parent = ifelse(min_comp >= 1, "BACK", "OOS")) %>% 
+  mutate(join = cln_code(PARENT)) %>% 
+  select(join, status_parent)
+
+##status of the stocked products
+stocked_status <- iss_range_joined %>% mutate(status_s_back = ifelse(`Product Type` %in% c("S", "EOL") & `Qty Avail` > 0, "BACK", "")) %>% 
+  mutate(status_s_oos = ifelse(`Product Type` %in% c("S", "EOL") & `Qty Avail` <= 0, "OOS", "")) %>% 
+  left_join(., parent_status, by = "join")
+
+
+##combining all status
+status_cols <- names(stocked_status) %>% .[grepl("status", x = .)]
+combined_status <- stocked_status %>% mutate(status_parent = ifelse(is.na(status_parent), "", status_parent)) %>%
+  unite(status, status_cols, sep = "") %>%
+  filter(!is.na(`Customer Range`) &  `Product Type` != "I")
+
+combined_status %>% filter(!status %in% c("BACK", "OOS"))
+
+
+
+combined_status %>%
+  select(`Product Code.y`, status) %>%
+  fwrite(file.path(status_update_dir, "output", paste0(today(), "_stock.csv")), bom = T)
+```
+
+
+
+
+
+
+
+
+
+
+
+WIP - not in use
+```{r}
+eol_update <- oos_master %>% filter(`Updated Status`%in% c("O", "EOL"))
+duped_codes <- eol_update %>% filter(duplicated(`Product Code`)) %>% pull(`Product Code`)
+
+eol_update %>% filter(eol_update$`Product Code` %in% duped_codes)
+
+eol_update %>% filter(`Updated Status` %in% c("O", "EOL")) %>%
+  group_by(`Product Code`) %>%
+  mutate(observation = 1) %>% 
+  mutate(count = cumsum(observation)) %>% 
+  mutate(total = n()) %>% 
+  filter(count == total) %>%
+  left_join(., all_propella_products) %>%
+  left_join(., iss, by = c("Product Code" = "join")) %>% 
+  select(`Product Code`, `Updated Status`, "Product Type", "Qty Avail", "On P/Order") %>% 
+   fwrite(file.path(status_update_dir, "output", paste0(today(), "_prop_update.csv")), bom = T)
+```
+

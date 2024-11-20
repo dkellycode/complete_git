@@ -1,0 +1,5 @@
+"*ContactName","EmailAddress","POAddressLine1","POAddressLine2","POAddressLine3","POAddressLine4","POCity","PORegion","POPostalCode","POCountry","*InvoiceNumber","Reference","*InvoiceDate","*DueDate","InventoryItemCode","*Description","*Quantity","*UnitAmount","Discount","*AccountCode","*TaxType","TrackingName1","TrackingOption1","TrackingName2","TrackingOption2","Currency","BrandingTheme"
+"Woolworths Limited","","","","","","","","","","0106022721","PO 0106022721","23/03/2023","23/03/2023","","d3 Light EAB Spandex Bandage","16","178.98","","227010725","GST on Income","","","","","",""
+"Woolworths Limited","","","","","","","","","","0106022721","PO 0106022721","23/03/2023","23/03/2023","","d3 Cohesive Bandage","96","191.52","","224110725","GST on Income","","","","","",""
+"Woolworths Limited","","","","","","","","","","0106022721","PO 0106022721","23/03/2023","23/03/2023","","d3 RST - Rigid Strapping Tape","32","393.3","","223010725","GST on Income","","","","","",""
+"Woolworths Limited","","","","","","","","","","0106022721","PO 0106022721","23/03/2023","23/03/2023","","Adjustment to Total","1","0","","88600","BAS Excluded","","","","","",""

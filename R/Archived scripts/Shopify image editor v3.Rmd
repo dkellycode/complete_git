@@ -1,0 +1,65 @@
+---
+This file will read all images in a chosen directory and execute the below steps.
+
+1. Read all images, flatten them, and re-write to original folder
+2. Read file information such as size, type, height and width
+3. Identify images where the megapixel dimensions are > 20 MP (the Shopify maximum)
+4. Identify images that are not square (if you ask it to)
+5. Work out what adjustment is needed to get the oversized images < 20 MP
+6. Execute the change (preserving aspect ratio) and overwrite the file in the original directory with the updated version
+7. Identify images that are greater than 20MB in size, and resize them to max 20 MB
+8. 
+---
+```{r read_exif)}
+imagelist<-exif_read(choose.dir(), recursive = TRUE)%>%.[c("SourceFile","FileSize","FileTypeExtension","ImageWidth","ImageHeight")]%>%as_tibble()
+imagelist2<-imagelist
+dimstibble<-imagelist%>%mutate('Megapixels' = (.$ImageWidth * .$ImageHeight)/1000000)
+```
+
+```{r tifftopng, include = FALSE, echo = FALSE}
+tifs<-subset(dimstibble,str_detect(dimstibble$FileTypeExtension,"tif|tiff|tff|TIF|TIFF|TFF"))
+newnames<-mgsub(tifs$SourceFile,c("tif","tiff","tff","TIF","TIFF","TFF"),c("png","png","png","png","png","png"))
+for (i in seq_along(tifs$SourceFile)){tifs$SourceFile[i] %>% image_read() %>% image_convert(.,"png") %>% image_write(.,newnames[i], "png")}
+for (i in seq_along(tifs$SourceFile)){if(file.exists(tifs$SourceFile[i])){file.remove(tifs$SourceFile[i])}}
+uploadlist<-list.files(choose.dir(), recursive = TRUE)%>%as_tibble()%>%write_xlsx(.,"C://Users//Darren//Desktop//uploadlist.xlsx")
+gc()
+```
+
+```{r megapixel.exceptions, include = FALSE, echo = FALSE}
+exceptions<-subset(dimstibble, Megapixels >= 20)%>%mutate('maxparam' = pmax(.$ImageWidth, .$ImageHeight),'factor' = 2048/maxparam, 'resizeval' = percent(round(1-factor,2)))
+message(paste(length(exceptions$SourceFile),"images to resize."))
+gc()
+```
+
+```{r imageresize, include = FALSE, echo = FALSE}
+for (i in seq_along(exceptions$SourceFile)){exceptions$SourceFile[i] %>% image_read() %>% image_resize(.,exceptions$resizeval[i]) %>% image_write(.,exceptions$SourceFile[i])}
+rm(i)
+gc()
+```
+
+```{r megabytes.exceptions, incldue = FALSE, echo = FALSE}
+imagelist<-exif_read(choose.dir(), recursive = TRUE)%>%.[c("SourceFile","FileSize","FileTypeExtension","ImageWidth","ImageHeight")]%>%as_tibble()
+szexceptions<-subset(dimstibble, FileSize >=20000000)%>%mutate('factor' = 19/(.$FileSize/1000000), 'resizeval' = percent(round(1-factor,2)))
+message(paste(length(szexceptions$SourceFile),"images to reduce"))
+```
+
+```{r imagerescale, include = FALSE, echo = FALSE}
+for (i in seq_along(szexceptions$filename)){szexceptions$filename[i] %>% image_read() %>% image_scale(.,szexceptions$resizeval[i]) %>% image_write(.,szexceptions$filename[i])}
+rm(i)
+gc()
+```
+
+```{r notsquare, include = FALSE, echo = FALSE}
+shapecheck<-dimstibble%>%mutate('shape' = ifelse(dimstibble$ImageWidth == dimstibble$ImageHeight,"SQUARE","NOT SQUARE"))
+notsquare<-shapecheck%>%subset(., shape == "NOT SQUARE")
+print(notsquare)
+```
+
+```{r imagecrop, include = FALSE, echo = FALSE}
+image_read(imagelist[xxxxx])%>%image_crop(.,"AAAA x BBBB + CCCC")
+```
+
+
+pb<-progress_bar$new(total = nrow(exceptions))
+
+#imagelist2<-imagelist ##use this to save another copy of the list for the MB exceptions, instead of using exifread again

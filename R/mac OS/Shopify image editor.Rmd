@@ -1,0 +1,50 @@
+
+```{r read_exif)}
+directory<-tk_choose.dir()
+imagelist<-list.files(directory, full.names = T, recursive = T)
+imagedata<-exif_read(imagelist,tags = c("SourceFile","FileSize","FileTypeExtension","ImageWidth","ImageHeight"))%>%as_tibble()
+dimstibble<-imagedata%>%mutate('Megapixels' = (.$ImageWidth * .$ImageHeight)/1000000)
+```
+
+```{r tifftopng, include = FALSE, echo = FALSE}
+tifs<-subset(dimstibble,str_detect(dimstibble$FileTypeExtension,"tif|tiff|tff|TIF|TIFF|TFF"))
+newnames<-mgsub(tifs$SourceFile,c("tif","tiff","tff","TIF","TIFF","TFF"),c("png","png","png","png","png","png"))
+for (i in seq_along(tifs$SourceFile)){tifs$SourceFile[i] %>% image_read() %>% image_convert(.,"png") %>% image_write(.,newnames[i], "png")}
+for (i in seq_along(tifs$SourceFile)){if(file.exists(tifs$SourceFile[i])){file.remove(tifs$SourceFile[i])}}
+uploadlist<-list.files(directory, recursive = TRUE)%>%as_tibble()%>%write_xlsx(.,paste0(directory,"/","Uploadlist",".xlsx"))
+gc()
+```
+
+```{r megapixel.exceptions, include = FALSE, echo = FALSE}
+exceptions<-subset(dimstibble, Megapixels >= 20)
+exceptions%>%mutate(('maxparam' = pmax(.$ImageWidth, .$ImageHeight)),('adjfactor' = 2048/maxparam), ('resizeval' = percent(round(1-adjfactor,2))))
+message(paste(length(exceptions$SourceFile),"images to resize."))
+
+if(nrow(exceptions)>0){for (i in seq_along(exceptions$SourceFile)){exceptions$SourceFile[i] %>% image_read() %>% image_resize(.,exceptions$resizeval[i]) %>% image_write(.,exceptions$SourceFile[i])}
+rm(i)
+gc()}
+```
+
+```{r megabytes.exceptions, incldue = FALSE, echo = FALSE}
+szexceptions<-subset(dimstibble, FileSize >=20000000)%>%mutate('factor' = 19/(.$FileSize/1000000), 'resizeval' = percent(round(1-factor,2)))
+message(paste(length(szexceptions$SourceFile),"images to reduce"))
+
+if(nrow(szexceptions)>0){for (i in seq_along(szexceptions$filename)){szexceptions$filename[i] %>% image_read() %>% image_scale(.,szexceptions$resizeval[i]) %>% image_write(.,szexceptions$filename[i])}
+rm(i)
+gc()}
+```
+
+#OTHER TOOLS
+
+```{r notsquare, include = FALSE, echo = FALSE}
+shapecheck<-dimstibble%>%mutate('shape' = ifelse(dimstibble$ImageWidth == dimstibble$ImageHeight,"SQUARE","NOT SQUARE"))
+notsquare<-shapecheck%>%subset(., shape == "NOT SQUARE")
+print(notsquare)
+```
+
+```{r imagecrop, include = FALSE, echo = FALSE}
+image_read(imagelist[xxxxx])%>%image_crop(.,"AAAA x BBBB + CCCC")
+```
+
+
+pb<-progress_bar$new(total = nrow(exceptions))

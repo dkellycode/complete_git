@@ -1,0 +1,67 @@
+---
+This code will read the Qantas AU file in your download folder and create 3 separate files.
+  
+  1. The xlsx import file for Propella
+  2. The Global Mail template to send to the warehouse
+  3. The Qantas AU handback file (awaiting tracking information from Global Mail)
+---
+
+```{r Namers}
+# Set up some path name parameters
+filenamer<-paste("QAU Import",Sys.Date())
+pathnamer<-paste("\\\\CPSL2K12\\PropellaEDI\\live\\Qantas AU\\",filenamer,".xlsx")
+filenamer2<-paste("Master Template Global Mail",Sys.Date())
+pathnamer2<-paste("P:\\CPS Master Docs\\Qantas Orders\\Global Mail Completed\\",filenamer2,".xlsx")
+filenamer3<-paste("line_items_for_dispatch",Sys.Date())
+pathnamer3<-paste("P:\\CPS Master Docs\\Qantas Orders\\HANDBACKS AUS\\",filenamer3,".csv")
+```
+
+```{r Datagrab}
+# Get the data- chooses most recent file in downloads with name "invoices_report"
+fileselector<-file.info(list.files("C:\\Users\\Darren\\Downloads", pattern = "invoices_report", full.names = TRUE))
+fileselector<-rownames(fileselector)[which.max(fileselector$ctime)]
+qau<-as.data.frame(fread(fileselector))
+
+# Add new blank columns
+#Combine column 40 and 3 to make unique reference value
+qau['Cust No']=""
+qau['Stkpt']=""
+qau['OrdandInv']=""
+qau['OrdandInv']<-trimws(paste(qau$`External: Ct Order Number`,"/",qau$`Invoice #`))
+qau['Building']<-""#48
+qau['Currency']<-""#49
+
+# Rearrange the tables
+exportglobal<-qau[c(47,6,9,10,11,12,14,13,6,8,19,49,26)]
+keepcols<-c('OrdandInv','Line Item ID','Creation Date','Cust No','Name','Address','City','State','Postcode','Phone','Email Address','Postage before shipping discount','Stkpt','Variant SKU','Quantity')
+import<-qau[keepcols]
+qauhandback<-qau[c('Line Item ID','Advert Name','Variant Name','Invoice #','Creation Date','Quantity','Tracking number','Tracking carrier','Dispatch Date','Note','External: Ct Order Number','External: Ct Order')]
+```
+
+```{r Renamecolumns}
+# Change the column headings as required
+colnames(import)<-c('CustOrd','Ref','Ord Date','Cust No','Addr1','Addr2','Addr3','City','Pcode','Phone','Email','Freight Value','Stkpt','Prod No','QTY')
+colnames(exportglobal)<-c('Delivery Reference','Name','Building','Street Address','Suburb','State','PostCode','Country','Contact','Phone','Goods Desc','Currency','Value')
+colnames(qauhandback)<-c('Line item id','Advert name','Variant name','Invoice id','Invoice created at','Quantity','Tracking number','Tracking carrier','Dispatched at','Note','Ct Order Number','Ct Order ID')
+```
+
+```{r Addhardcodevalues}
+# Hard code the country value, add last names to last name column, update first name column
+import['Cust No']<-c(replicate(nrow(qau),"QAU008"))
+import['Stkpt']<-c(replicate(nrow(qau),"CPS"))
+exportglobal['Currency']<-c(replicate(nrow(qau),"AUD"))
+qauhandback['Dispatched at']<-format(today(),format="%Y%m%d")
+format(qauhandback['Invoice created at'],format="%d/%m/%Y")
+```
+
+```{r Export}
+# Create the files
+write_xlsx(import,pathnamer)
+write_xlsx(exportglobal,pathnamer2)
+write_csv(qauhandback,pathnamer3)
+```
+
+```{r Archive files, include = FALSE}
+# Delete the raw order files
+file.remove(fileselector,"I:\\live\\Qantas AU\\Archive downloads")
+```

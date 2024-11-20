@@ -1,0 +1,3 @@
+R1|A|WEB53723|R|10052023|WEB53723|SO0019795|||Darren Gould|PO Box 3200||Mandurah|WA|6210|Australia||SP|||||||administration@mandurahslsc.asn.au||
+R2|A|WEB53723|1|1|PATCAPLYC-ML||30|EACH|||
+EOF

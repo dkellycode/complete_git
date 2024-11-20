@@ -1,0 +1,22 @@
+```{r Libraries, include = FALSE}
+library(tidyverse)
+library(pdftools)
+library(dplyr)
+library(writexl)
+library(stringr)
+library(lubridate)
+library(data.table)
+```
+
+```{r Namers}
+# Set up some path name parameters
+filenamer<-paste("Sime Darby Import",Sys.Date())
+pathnamer<-paste("C:\\Users\\Darren\\Documents\\R\\Live scripts\\Integration Outputs\\",filenamer,".xlsx")
+```
+
+```{r data.grab}
+# Get the data
+sourcepdf<-pdf_text(file.choose()) %>% str_split("\n") %>% str_squish() %>% str_split("\\,\\s\\\"")read.xls 
+#sourcepdf %>% str_extract("(?<=c[:punct:]\\\").*")
+#str_extract(sourcepdf,"[^\]+")
+```

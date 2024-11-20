@@ -1,0 +1,9 @@
+*ContactName,EmailAddress,POAddressLine1,POAddressLine2,POAddressLine3,POAddressLine4,POCity,PORegion,POPostalCode,POCountry,*InvoiceNumber,Reference,*InvoiceDate,*DueDate,InventoryItemCode,*Description,*Quantity,*UnitAmount,Discount,*AccountCode,*TaxType,TrackingName1,TrackingOption1,TrackingName2,TrackingOption2,Currency,BrandingTheme
+Woolworths Limited,,,,,,,,,,INV-0106230618,PO 0106230618,11/05/23,25/05/23,9.4219E+12,d3 RST - Rigid Strapping Tape,32,393.3,,200,GST on Income,,,,,,
+Woolworths Limited,,,,,,,,,,INV-0106230618,PO 0106230618,11/05/23,25/05/23,9.42191E+12,d3 Athletic Tape,32,318.01,,200,GST on Income,,,,,,
+Woolworths Limited,,,,,,,,,,INV-0106230618,PO 0106230618,11/05/23,25/05/23,9.4219E+12,d3 Cohesive Bandage,48,191.52,,200,GST on Income,,,,,,
+Woolworths Limited,,,,,,,,,,INV-0106230618,PO 0106230618,11/05/23,25/05/23,,Adjustment to Total,1,0,,41100,BAS Excluded,,,,,,
+Woolworths Limited,,,,,,,,,,CN-0106230618,PO 0106230618,11/05/23,25/05/23,9.4219E+12,d3 RST - Rigid Strapping Tape,32,-81.60975,,200,GST on Income,,,,,,
+Woolworths Limited,,,,,,,,,,CN-0106230618,PO 0106230618,11/05/23,25/05/23,9.42191E+12,d3 Athletic Tape,32,-65.987075,,200,GST on Income,,,,,,
+Woolworths Limited,,,,,,,,,,CN-0106230618,PO 0106230618,11/05/23,25/05/23,9.4219E+12,d3 Cohesive Bandage,48,-39.7404,,200,GST on Income,,,,,,
+Woolworths Limited,,,,,,,,,,CN-0106230618,PO 0106230618,11/05/23,25/05/23,,Adjustment to Total,1,0,,41100,BAS Excluded,,,,,,

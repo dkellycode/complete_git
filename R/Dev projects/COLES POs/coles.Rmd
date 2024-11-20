@@ -1,0 +1,55 @@
+```{r read.csv, echo =F, include = F}
+colespo<-read_csv(file.choose(), show_col_types = F)
+options(scipen = 999)
+```
+
+```{r data.grab, echo = F, include = F}
+headerdeets<-unlist(colespo[1,], use.names = F)
+linedeets<-colespo[2:paste0(nrow(colespo)),]%>%.[c(1,13,15,86)]
+linedeets['Unit Price'] = c(format(round(linedeets$`Unit Price`,2), nsmall = 2 ))
+po<-headerdeets[1]
+orderdate<-paste(str_split(unlist(str_split(headerdeets[3],"/"))," ")%>%.[c(2,1,3)], collapse = "/")
+duedate<-paste(str_split(unlist(str_split(headerdeets[6],"/"))," ")%>%.[c(2,1,3)], collapse = "/")
+dc<-unique(unlist(str_split(headerdeets[11]," ")))
+dcaddress<-paste(headerdeets[c(60,61,63,64,65)], collapse = ",")
+
+ordertable<-data.frame(po,orderdate,duedate,dc)
+```
+
+```{r local.table, echo = F, include = F}
+prodname<-c('rigid','kines','wtrprf','cohesive','eab','ast','bfees')
+prodcost<-c(280.80,233.28,332.10,149.76,999.99,999.99,0.00)
+proddesc<-c('d3 RST - Rigid Strapping Tape','d3 K6.0 Kinesiology Tape','d3 X6.0 Waterproof Kinesiology Tape','d3 Cohesive Bandage','d3 Light EAB Spandex Bandage','d3 Athletic Tape','Adjustment to Total')
+prodaccts<-c(227010726,225110725,225510726,223010726,000000000,000000000,41100)
+#prodaccts<-c('227010725 - Rigid - Woolworths','225110726 - Kinesiology - Woolworths','225510725 - Waterproof Kinesiology - Woolworths','223010725 - Cohesive Bandage - Woolworths','224110725 - EAB - Woolworths','221010725 - Athletic Tape - Woolworths','41100 - Bank fees')
+shippercodes<-c(9421903673244,9421903673220,9421905741828,9421903673206,9421034850477,9421905131841,99999)
+taxtype<-c(replicate(6,'GST on Income'),'BAS Excluded')
+costtable<-data.frame(shippercodes,proddesc,prodname,prodcost,prodaccts,taxtype)
+```
+
+```{r final.build, echo = F, include = F}
+combined<-left_join(ordertable,linedeets, by = c(po = "PO Number"))
+combined['GTIN']= c(as.double(combined$GTIN))
+
+finaltable<-left_join(combined,costtable, by = c('GTIN' = 'shippercodes'))
+headings<-c('*ContactName','EmailAddress','POAddressLine1','POAddressLine2','POAddressLine3','POAddressLine4','POCity','PORegion','POPostalCode','POCountry','*InvoiceNumber','Reference','*InvoiceDate','*DueDate','InventoryItemCode','*Description','*Quantity','*UnitAmount','Discount','*AccountCode','*TaxType','TrackingName1','TrackingOption1','TrackingName2','TrackingOption2','Currency','BrandingTheme') #27 values
+newcols<-c('a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u')
+finaltable[newcols]<- "NA"
+import<-finaltable[c(13:24,3,25,26,8,5,10,27,11,12,28:33)]
+adjline<-c("NA","NA","NA","NA","NA","NA","NA","NA","NA","NA","NA","NA","NA","NA","NA",'Adjustment to Total',1,0.00,"NA",'41100','BAS Excluded',"NA","NA","NA","NA","NA","NA") #27 values
+names(import)<-headings
+import<-rbind(import,adjline)
+```
+
+```{r write.file, echo = F, include = F}
+lengther<-nrow(import)
+import['*ContactName']=replicate(lengther,'Coles - Grocery Holdings Pty Limited')
+import['*InvoiceNumber']=replicate(lengther,paste0('INV-',gsub("\\D+","",po)))
+import['Reference']=replicate(lengther,(paste0("PO ",gsub("\\D+","",po))))
+import['*InvoiceDate']=replicate(lengther,duedate)
+import['*DueDate']=replicate(lengther,format(dmy(duedate)+14, format = "%d/%m/%Y"))
+import['*InvoiceNumber']<-as.character(import$`*InvoiceNumber`)
+
+apply(import, 2, function (y) (gsub("NA","",y)))%>%write.csv(paste0('/Users/d3ops/Google Drive/Shared drives/Orders/Australia/Coles/',po,'_import_',Sys.Date(),'.csv'), row.names = F)
+```
+

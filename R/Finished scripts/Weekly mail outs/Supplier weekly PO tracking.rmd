@@ -1,0 +1,26 @@
+---
+This file will read the PO tracking report and execute the below steps.
+
+1. Filter only the "#N/A" results
+2. Split the table up by supplier
+3. Write a file per supplier with their supplier name as the file name
+
+---
+
+```{r Datagrab}
+# Select the file
+rawtable<-readxl::read_xlsx("\\\\10.103.128.1\\cpsldata\\CPS Master Docs\\CPS DAILY MASTER DOCS\\PO tracking\\INDENT PO tracking report.xlsx")
+# Keep only the lines with no tracking
+naonly<-subset(rawtable,is.na(Tracking))
+col1<-today()
+col2<-"Total Suppliers Chased"
+col3<-length((unique(naonly$Supplier)))
+```
+
+```{r Export}
+# Create files
+naonly %>% 
+  group_by(Supplier) %>% 
+  group_walk(~ write_xlsx(.x,paste0("C:\\Users\\Darren\\Documents\\R transfer\\Integration Outputs\\Supplier Weekly PO Tracking\\",.y$Supplier,".xlsx")))
+data.frame(col1,col2,col3)%>%fwrite(.,file = "C:\\Users\\Darren\\Documents\\R transfer\\Integration Outputs\\Supplier Weekly PO Tracking\\Weekly chase count.txt", sep= "|",col.names = FALSE, row.names = FALSE)
+```

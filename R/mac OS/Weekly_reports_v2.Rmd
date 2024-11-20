@@ -1,0 +1,27 @@
+```{r weekly.report, echo = F, include = F}
+try({
+nzgeneral<-list.files('/Users/d3ops/Google Drive/Shared drives/Operations/Weekly Report/Weekly/', pattern = 'general_weekly', full.names = T, recursive = F)%>%read_xlsx(., skip = 7)%>%.[c(1:3)]
+nzgeneral<-nzgeneral[-which(nzgeneral$Contact == "Total"),]
+nzmajor<-list.files('/Users/d3ops/Google Drive/Shared drives/Operations/Weekly Report/Weekly/', pattern = 'major_weekly', full.names = T, recursive = F)%>%read_xlsx(., skip = 7)%>%.[c(1:3)]
+nzmajor<-nzmajor[-which(nzmajor$Contact == "Total"),]
+ausall<-list.files('/Users/d3ops/Google Drive/Shared drives/Operations/Weekly Report/Weekly/', pattern = 'd3_Australia', full.names = T, recursive = F)%>%read_xlsx(., skip = 7)%>%.[c(1:3)]
+ausall<-ausall[-which(ausall$Contact == "Total"),]
+})
+```
+
+```{r weekly.data.manip, echo = F, include = F}
+tablelist<-list(nzgeneral,nzmajor,ausall)
+nameupdate<-function(x) {
+  names(x)<- c('Customer','Week TY','Week LY') 
+  (x)
+  }
+tablelist<-lapply(tablelist,nameupdate)
+totaller<-function(x) {adorn_totals(x)}
+tablelist<-lapply(tablelist,totaller)
+```
+
+```{r write.report, echo = F, include = F}
+write.xlsx(setNames(tablelist,c('NZ General','NZ Major','Aus')),paste0('/Users/d3ops/Google Drive/Shared drives/Operations/Weekly Report/Weekly/Weekly_summary',Sys.Date(),'.xlsx'))
+#dir.create('/Users/d3ops/Google Drive/Shared drives/Operations/Weekly Report/Weekly/Archive/')
+file.move(list.files('/Users/d3ops/Google Drive/Shared drives/Operations/Weekly Report/Weekly/', pattern = 'd3', full.names = T),'/Users/d3ops/Google Drive/Shared drives/Operations/Weekly Report/Weekly/Archive/')
+```

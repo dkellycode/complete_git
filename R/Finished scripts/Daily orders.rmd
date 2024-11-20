@@ -1,0 +1,8 @@
+
+
+```{r read.create}
+orders<-list.files("C:\\Users\\Darren\\Desktop", pattern = "^OCOINDET", full.names = TRUE)%>%read_xls()
+orders%>%filter(grepl("^[[:digit:]]+$",orders$`Consumer Product Sourcing`))
+orders<-orders[c(4,7,13)]%>%as_tibble()
+colnames(orders)<-c("Prodno","Desc","Qty")
+```

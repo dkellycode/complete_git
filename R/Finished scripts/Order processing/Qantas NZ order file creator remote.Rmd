@@ -1,0 +1,58 @@
+---
+This code will read the Qantas NZ file in your download folder and create 2 separate files.
+  
+  1. The xlsx import file for Propella
+  2. The Qantas NZ handback file (awaiting tracking information from Propella despatches)
+---
+
+```{r Namers}
+# Set up some path name parameters
+filenamer<-paste("QNZ Import",Sys.Date())
+pathnamer<-paste("\\\\CPSL2K12\\PropellaEDI\\live\\Qantas NZ\\",filenamer,".xlsx")
+filenamer2<-paste("line_items_for_dispatch",Sys.Date())
+pathnamer2<-paste("P:\\CPS Master Docs\\Qantas Orders\\HANDBACKS NZ\\",filenamer2,".csv")
+```
+
+```{r Datagrab}
+# Get the data
+fileselector<-file.info(list.files("C:\\Users\\Darren\\Downloads", pattern = "invoices_report", full.names = TRUE))
+fileselector<-rownames(fileselector)[which.max(fileselector$ctime)]
+qnz<-as.data.frame(fread(fileselector))
+
+# Add new blank columns
+#Combine column 3 and 48 to make unique reference value
+qnz['Cust No']=""#49
+qnz['Stkpt']=""#50
+qnz['OrdandInv']=""#51
+qnz['OrdandInv']<-trimws(paste(qnz$`External: Ct Order Number`,"/",qnz$`Invoice #`))
+
+# Rearrange the table
+keepcols<-c('OrdandInv','Line Item ID','Creation Date','Cust No','Name','Address','City','State','Postcode','Phone','Email Address','Postage before shipping discount','Stkpt','Variant SKU','Quantity')
+import<-qnz[keepcols]
+qnzhandback<-qnz[c('Line Item ID','Advert Name','Variant Name','Invoice #','Creation Date','Quantity','Tracking number','Tracking carrier','Dispatch Date','Note','External: Ct Order Number','External: Ct Order')]
+```
+
+```{r Renamecolumns}
+# Change the column headings to match XLSX import format
+colnames(import)<-c('CustOrd','Ref','Ord Date','Cust No','Addr1','Addr2','Addr3','City','Pcode','Phone','Email','Freight Value','Stkpt','Prod No','QTY')
+colnames(qnzhandback)<-c('Line item id','Advert name','Variant name','Invoice id','Invoice created at','Quantity','Tracking number','Tracking carrier','Dispatched at','Note','Ct Order Number','Ct Order ID')
+```
+
+```{r addhardcodevalues}
+# Hard code the country value, add last names to last name column, update first name column
+import['Cust No']<-c(replicate(nrow(qnz),"QNZ009"))
+import['Stkpt']<-c(replicate(nrow(qnz),"CPS"))
+qnzhandback['Dispatched at']<-format(today(),format="%Y%m%d")
+format(qnzhandback['Invoice created at'],format="%d/%m/%Y")
+```
+
+```{r Export}
+# Create the file
+write_xlsx(import,pathnamer)
+write_csv(qnzhandback,pathnamer2)
+```
+
+```{r Archivefiles, include = FALSE}
+# Move the raw order files to an archive folder
+file.remove(fileselector)
+```

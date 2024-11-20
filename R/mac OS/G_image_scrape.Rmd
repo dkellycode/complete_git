@@ -1,0 +1,18 @@
+```{r libraries, include = F}
+library(exifr)
+library(tidyverse)
+library(tools)
+```
+
+```{r imagelists}
+lowresimages <- list.files('/Users/d3ops/Google Drive/Shared drives/', 
+    pattern = c('.jpg','.jpeg','.png'), recursive = T)
+hiresimages <- list.files('/Users/d3ops/Google Drive/Shared drives/', 
+    pattern = c('.ps','.psd','.ai','.tif'), recursive = T)
+videos <- list.files('/Users/d3ops/Google Drive/Shared drives/', 
+    pattern = c('.mp4','.mov'), recursive = T)
+
+uniquelow <- unique(lowresimages)
+uniquehi <- unique(hiresimages)
+strsample <- lowresimages[1:10]
+```

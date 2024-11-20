@@ -1,0 +1,27 @@
+---
+This file will read all images in a chosen directory and execute the below steps.
+
+1. Read file information such as size, type, height and width
+2. Identify images where the megapixel dimensions are > 20 MP (the Shopify maximum)
+3. Work out what adjustment is needed to get the images < 20 MP
+4. Execute the change (preserving aspect ratio) and overwrite the file in the original directory with the updated version
+
+---
+
+```{r dimchecker, include = FALSE, echo = FALSE}
+imagelist<-list.files(choose.dir(), pattern="\\.", full.names = TRUE, recursive = FALSE)
+realimages<-lapply(imagelist,brick)
+names(realimages)<-c(imagelist)
+dimslist<-lapply(realimages,image_info)
+names(dimslist)<-names(realimages)
+dimstibble<-rbindlist(dimslist)%>%filter(., filesize>0)%>%mutate(.,'Megapixels' = (.$width*.$height)/1000000,'filename' = c(names(realimages)))%>%relocate(.,'filename', .before = 'format')
+exceptions<-subset(dimstibble,dimstibble$Megapixels >= 20)%>%mutate('maxparam' = pmax(.$width, .$height),'factor' = 2050/maxparam, 'new height' = height/factor, 'new width' = width/factor, 'resizeval' = percent(round(1-factor,2)))
+message(paste(length(exceptions$filename),"images to resize."))
+gc()
+```
+
+```{r imageresize, include = FALSE, echo = FALSE}
+for (i in seq_along(exceptions$filename)){exceptions$filename[i] %>% image_read() %>% image_resize(.,exceptions$resizeval[i]) %>% image_write(.,exceptions$filename[i])}
+gc()
+```
+

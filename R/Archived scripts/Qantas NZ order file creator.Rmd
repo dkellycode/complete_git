@@ -1,0 +1,54 @@
+```{r Libraries, include = FALSE}
+# Libraries you need
+library(writexl)
+library(tidyverse)
+library(dplyr)
+library(readxl)
+library(lubridate)
+library(data.table)
+library(filesstrings)
+```
+
+```{r Namers}
+# Set up some path name parameters
+filenamer<-paste("QNZ Import",Sys.Date())
+pathnamer<-paste("I:\\live\\Qantas NZ\\",filenamer,".xlsx")
+```
+
+```{r Data.grab}
+# Get the data
+fileselector<-file.info(list.files("C:\\Users\\Darren\\Downloads", pattern = "invoices_report", full.names = TRUE))
+fileselector<-rownames(fileselector)[which.max(fileselector$ctime)]
+qnz<-as.data.frame(fread(fileselector))
+
+# Add new blank columns
+#Combine column 3 and 48 to make unique reference value
+qnz['Cust No']=""#49
+qnz['Stkpt']=""#50
+qnz['OrdandInv']=""#51
+qnz['OrdandInv']<-trimws(paste(qnz$`External: Ct Order Number`,"/",qnz$`Invoice #`))
+
+# Rearrange the table
+import<-qnz[c(50,16,1,48,6,10,11,12,14,8,7,34,49,21,25)]
+```
+
+```{r Rename.columns}
+# Change the column headings to match XLSX import format
+colnames(import)<-c('CustOrd','Ref','Ord Date','Cust No','Addr1','Addr2','Addr3','City','Pcode','Phone','Email','Freight Value','Stkpt','Prod No','QTY')
+```
+
+```{r add.hardcode.values}
+# Hard code the country value, add last names to last name column, update first name column
+import['Cust No']<-c(replicate(nrow(qnz),"QNZ009"))
+import['Stkpt']<-c(replicate(nrow(qnz),"CPS"))
+```
+
+```{r Export}
+# Create the file
+write_xlsx(import,pathnamer)
+```
+
+```{r Archive files, include = FALSE}
+# Move the raw order files to an archive folder
+file.move(fileselector,"I:\\live\\Qantas NZ\\Archive downloads", overwrite = FALSE)
+```

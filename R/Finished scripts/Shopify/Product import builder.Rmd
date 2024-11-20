@@ -1,0 +1,38 @@
+---
+This file will read the SHopify Master file and execute the below steps;
+
+1. Sort and rename columns to suit import format
+2. Add additional fields required for SHopify but not held in Propella
+3. Save a .csv file ready for the remaining requisite data entry.
+---
+
+```{r namers, include = FALSE, echo = FALSE}
+filenamer<-paste0("Shopify_Import_Master_",Sys.Date())%>%gsub("-","_",.)
+pathnamer<-paste0("C:\\Users\\Darren\\OneDrive\\CPS\\Shopify 2022\\Bible\\",filenamer,".csv")
+```
+
+```{r reader, include = FALSE, echo = FALSE}
+masterfile<-read_xlsx("C:\\Users\\Darren\\OneDrive\\CPS\\Shopify 2022\\Bible\\shopifymasterfile.xlsx")%>%.[c(2,8,19,5,9,10,11,12,1,6,21)]
+masterfile[12:50]=""
+masterfile<-masterfile[c(12,1,2,3,13,4,14,15,5:8,16,17,9,18:22,10,23:48,11,50)]
+```
+
+```{r table.build, include = FALSE, echo = FALSE}
+colnames(masterfile)<-c("Handle",	"Title",	"Body (HTML)",	"Vendor",	"Standardized Product Type",	"Custom Product Type",	"Tags",	"Published",	"Option1 Name",	"Option1 Value",	"Option2 Name",	"Option2 Value",	"Option3 Name",	"Option3 Value",	"SKU",	"Grams",	"Inventory Tracker",	"Inventory Qty",	"Inventory Policy",	"Fulfillment Service",	"Price",	"Compare At Price",	"Requires Shipping",	"Taxable",	"Barcode",	"Image Src",	"Image Position",	"Image Alt Text",	"Gift Card",	"SEO Title",	"SEO Description",	"Google Shopping / Google Product Category",	"Google Shopping / Gender",	"Google Shopping / Age Group",	"Google Shopping / MPN",	"Google Shopping / AdWords Grouping",	"Google Shopping / AdWords Labels",	"Google Shopping / Condition",	"Google Shopping / Custom Product",	"Google Shopping / Custom Label 0",	"Google Shopping / Custom Label 1",	"Google Shopping / Custom Label 2",	"Google Shopping / Custom Label 3",	"Google Shopping / Custom Label 4",	"Image",	"Weight Unit",	"Tax Code",	"Cost per item",	"Status")
+masterfile['Tags']<-c(replicate(nrow(masterfile),"themarket"))
+masterfile['Published']<-c(replicate(nrow(masterfile),"TRUE"))
+masterfile['Inventory Tracker']<-c(replicate(nrow(masterfile),"shopify"))
+masterfile['Inventory Policy']<-c(replicate(nrow(masterfile),"deny"))
+masterfile['Fulfillment Service']<-c(replicate(nrow(masterfile),"manual"))
+masterfile['Requires Shipping']<-c(replicate(nrow(masterfile),"TRUE"))
+masterfile['Taxable']<-c(replicate(nrow(masterfile),"TRUE"))
+masterfile['Gift Card']<-c(replicate(nrow(masterfile),"FALSE"))
+masterfile['Status']<-c(replicate(nrow(masterfile),"active"))
+masterfile['Handle']<-c(masterfile$SKU)%>%gsub("[[:space:]]", "", .)
+masterfile['Option1 Name']<-c(masterfile$`Option1 Name`)%>%gsub("Colour","Color",.)
+```
+
+```{r file.write, include = FALSE, echo = FALSE}
+masterfile%>%filter(grepl("XXXXX",.$Vendor))
+masterfile%>%write_csv(.,pathnamer)
+```

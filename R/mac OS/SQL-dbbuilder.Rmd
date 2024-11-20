@@ -1,0 +1,67 @@
+```{r tableread, echo = F, include = F}
+#sohtables<-list.files('/Users/d3ops/Documents/SQL/Inventory/Stock Reports/', full.names = T)%>%lapply(.,read_excel)
+#sohmaster<-sohtables%>%do.call(cbind,.)%>%.[c(1,2,4,6)]%>%mutate(., 'Total' = rowSums(.[2:4]))
+#stockmaster<-read_xlsx('/Users/d3ops/Documents/SQL/Inventory/kits.xlsx')
+sohuk<-read_xlsx('/Users/d3ops/Library/CloudStorage/GoogleDrive-darren@d3tape.com/Shared drives/UK Stock Requirements/Stock Inventory/Stock List/Complete Inventory List/21022023 D3 stock list for the UK.xlsx', skip = 7)
+sohau<-read.delim(pipe("pbpaste"))%>%as_tibble()
+itemprice<-read_xlsx('/Users/d3ops/Documents/SQL/Inventory/master_pricing.xlsx')
+```
+
+```{r cleanups, echo = F, inclue = F}
+options(scipen = 100)
+sohuk<-sohuk%>%filter(.,!is.na(.$`Product code`))%>%.[c(3,9)]
+sohau<-sohau%>%.[c(1,3)]
+#joined<-left_join(sohau,stockmaster, by = c("Product" = "barcode"))
+itemprice<-itemprice[c(which(!is.na(itemprice$`Size/Variant (Subheading)`))),-10]
+names(itemprice)<-c('description','size/length','colour','pack_qty','shipper_config','nzd','gbp','aud','usd')
+
+```
+
+```{r dbconfig.local, echo = F, include = F}
+#dsn_db<-'postgres'
+#dsn_host<-'localhost'
+#dsn_port<-'5432'
+#dsn_driver<-dbDriver('PostgreSQL')
+#dsn_uid<-'d3ops'
+#dsn_pwd<-''
+```
+
+```{r dbconfig.global, echo = F, include = F}
+dsn_db<-'d3global'
+dsn_host<-'localhost'
+dsn_port<-'5432'
+dsn_driver<-dbDriver('PostgreSQL')
+dsn_uid<-'d3ops'
+dsn_pwd<-''
+```
+
+```{r connectdb, echo = F, include = F}
+tryCatch({
+    drv <- dsn_driver
+    print("Connecting to Database…")
+    connec <- dbConnect(dsn_driver, 
+                 dbname = dsn_db,
+                 host = dsn_host,
+                 port = dsn_port,
+                 user = dsn_uid,
+                 password = dsn_pwd)
+    print("Database Connected!")
+    },
+    error=function(cond) {
+            print("Unable to connect to Database.")
+    })
+```
+
+```{r write.table, echo = F, include = F}
+conn<-dbConnect('PostgreSQL', dbname = 'd3global')
+newtable<-tryCatch({dbWriteTable(conn,'testtable',sohau, overwrite = F, append = F)},
+                  error = function(cond) {
+                    print("Table already exists")
+                  })
+updatetable<-dbWriteTable(conn,'testtable',sohau, overwrite = F, append = T, row.names = F)
+```
+
+#not in use
+joined<-left_join(sohau,stockmaster, by = c("Product" = "barcode"))
+grepl("\r\n",itemprice$`size/length`)
+

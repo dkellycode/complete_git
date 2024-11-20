@@ -1,0 +1,1 @@
+This repo is linked to GITHUB. There is a .gitignore as well as a hidden .env

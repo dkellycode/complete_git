@@ -1,0 +1,57 @@
+---
+This file will read the generic Propella PO export of daily purchase orders for Brolly sheets and reformat it to meet their requirements.
+
+---
+
+```{r Namers}
+# Set up some path name parameters
+filenamer<-paste("Brolly PO",Sys.Date())
+pathnamer<-paste0("C:\\Users\\Darren\\Documents\\R transfer\\Integration Outputs\\Daily POs\\",filenamer,".xlsx")
+```
+
+```{r Datagrab}
+# Get the data
+brolly<-read.csv("C:\\Users\\Darren\\Desktop\\Daily POs BRO001.csv")
+
+# Add new blank columns
+brolly["Guest Last Name"]=""
+brolly["Province"]=""
+brolly["Telephone #"]=""
+brolly["Catalogue Code"]=""
+brolly['Customer.Group']<- c(gsub("^$","Loyalty", brolly$Customer.Group))
+
+# Rearrange the table
+import<-brolly[c(6,22,7,8,9,10,23,11,12,24,25,16,18,5,4,21,17,3)]
+```
+
+```{r Renamecolumns}
+# Change the column headings to match Brolly format
+colnames(import)<- c('Guest First Name','Guest Last Name','Address Line 1','Street Address','Suburb','City','Province','Country','PostCode','Telephone Number','Catalogue Code','Catalogue Description','Quantity','Order Date','Purchase Order','Sales Order #','Prod Code','Customer Code')
+```
+
+```{r addhardcodevalues}
+# Hard code the country value, add last names to last name column, update first name column
+import['Country']<-c(replicate(nrow(import),"New Zealand"))
+lastnamevalues<-(str_extract(import$'Guest First Name',"\\w+$"))
+import['Guest Last Name']<-lastnamevalues
+firstnameonly<-gsub("\\s*\\w*$","", import$'Guest First Name')
+import['Guest First Name']<-firstnameonly
+import[5:6]<-apply(import[5:6],2, function (x) gsub("\\d{4}","",x))
+```
+
+```{r Export}
+# Create the file
+write_xlsx(import,pathnamer)
+```
+
+UNUSED LINES
+
+#if(import$City==""){shift(import$Suburb,1)}
+
+#```{r address.shuffle}
+# Move the address details if required
+#is.na(import$Suburb)
+#shift<-function(import,offset) df[((1:nrow(df))-1-offset)%%nrow(df)+1,]
+#```
+
+#Still to do 1. Replicate suburb into city if city = blank

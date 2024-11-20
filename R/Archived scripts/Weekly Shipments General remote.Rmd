@@ -1,0 +1,40 @@
+```{r Data.grab}
+# Select the file
+rawtable<-as.data.frame(read_xls(paste("C:\\Users\\Darren\\Desktop\\Weekly despatch - GENERAL.xls")))
+prodtype<-as.data.frame(read.csv(paste("C:\\Users\\Darren\\Documents\\R Transfer\\Static lookups\\PRODTYPEALL.csv")))
+
+# Add new blank columns
+rawtable['Tracking URL']=""
+```
+
+```{r add.hardcode.values, include = FALSE}
+PHtrackurl<-c("https://www.posthaste.co.nz/phl/servlet/ITNG_TAndTServlet?page=1&VCCA=Enabled&Key_Type=BarCode&barcode_data=")
+rawtable['Tracking URL']=""
+rawtable['Tracking URL']<-PHtrackurl
+
+# Rearrange the table
+rawexport<-rawtable[c(1,2,3,4,5,6,7,9,10,12,13, escape = FALSE)]
+
+# Change the column headings to match desired output
+colnames(rawexport)<-c('Customer Code','Invoice Number','Customer Order','Reference','Order Status','Invoice Date','Freight Carrier','Product Code','Description','Qty Shipped','Tracking Link')
+colnames(prodtype)<-c('Product Code','Type')
+
+#Add the tracking link column
+rawexport['Tracking Link']=""
+rawexport['Tracking Link']<-c(paste0(rawtable$`Tracking URL`,rawtable$`Consignment Number`))
+rawexport<-rawexport%>%mutate(`Order Status` = str_replace(`Order Status`,"Entered","Part Shipped"))
+joinedraw<-merge(rawexport,prodtype, by = 'Product Code')%>%filter(., Type != "I")
+```
+
+```{r Export, include = FALSE}
+# Create .xlsx file
+rundate<-today()
+printexport<-subset.data.frame(joinedraw,joined.raw$`Freight Carrier` == "Post Haste")
+printexport %>% 
+  group_by(`Customer Code`) %>% 
+  group_walk(~ write_xlsx(.x,paste0("C:\\Users\\Darren\\Desktop\\",.y$`Customer Code`," Weekly Despatch Report ",format(rundate, format="%d %m %Y"),".xlsx")))
+```
+
+#Still to do
+
+#1. Hyperlinks #2. Build email automatically #3. HTML table?

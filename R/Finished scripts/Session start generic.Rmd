@@ -1,0 +1,45 @@
+```{r librariesloader, include = FALSE, echo = FALSE}
+# Libraries you need- run this every time you open RStudio
+library(writexl)
+library(readxl)
+library(tidyverse)
+library(lubridate)
+library(filesstrings)
+library(stringr)
+library(data.table)
+library(dplyr)
+library(excel.link)
+library(stringr.tools)
+library(xlsx)
+library(scales)
+library(mgsub)
+library(magick)
+
+#Clear List of objects
+rm(list = ls())
+gc()
+
+#Static object loads
+prodtype<-read_xls("\\\\10.103.128.1\\cpsldata\\Darren\\Static lookups\\PRODTYPEALL.xls")
+supplierrange<-read_xls("\\\\10.103.128.1\\cpsldata\\Darren\\Static lookups\\Supplier ranges.xls")
+customerrange<-read_xls("\\\\10.103.128.1\\cpsldata\\Darren\\Static lookups\\Customer range.xls")
+generalfreight<-read_xls("\\\\10.103.128.1\\cpsldata\\Darren\\Static lookups\\Freight master.xls")
+boms<-read_xls("\\\\10.103.128.1\\cpsldata\\Darren\\Static lookups\\BOM.xls")
+```
+
+#Load If required
+library(DT)
+library(plyr)
+
+#Tips
+str() returns a list of all columns, their type, and a sample of data
+rm(list = ls()) clears all objects in the environment
+GC() CLEARS MEMORY IF OBJECTS ARE NO LONGER IN USE
+
+
+parents[c(-2,-3)]%>%group_by(PRODUCT)%>%summarise_all(sum)%>%as.data.frame()
+
+
+sheets <- readxl::excel_sheets("P:\\Jess\\Christmas Forecasting 2022\\Xmas 2022 Forecast - Final.xlsx")
+forecasts<-lapply(sheets, function (x) read_xlsx("P:\\Jess\\Christmas Forecasting 2022\\Xmas 2022 Forecast - Final.xlsx", sheet = x))
+names(forecasts)<-sheets

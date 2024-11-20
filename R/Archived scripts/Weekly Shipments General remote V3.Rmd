@@ -1,0 +1,63 @@
+```{r Data.grab}
+# Select the file
+rawtable<-as.data.frame(read_xlsx("C:\\Users\\Darren\\Desktop\\Weekly despatch - GENERAL.xlsx"))
+#dropship<-as.data.frame(read_xlsx("\\\\10.103.128.1\\cpsldata\\CPS Master Docs\\CPS DAILY MASTER DOCS\\PO tracking\\DROP SHIP TRACK 22.xlsx"))%>%.[c(6,1,2,3,4,5,7,8)]
+# Add new blank columns
+rawtable['Tracking URL']=""
+```
+
+```{r add.hardcode.values, include = FALSE}
+PHtrackurl<-c("https://www.posthaste.co.nz/phl/servlet/ITNG_TAndTServlet?page=1&VCCA=Enabled&Key_Type=BarCode&barcode_data=")
+rawtable['Tracking URL']=""
+rawtable['Tracking URL']<-PHtrackurl
+
+# Rearrange the table
+rawexport<-rawtable[c(-8,-11)]
+
+# Change the column headings to match desired output
+colnames(rawexport)<-c('Customer Code','Invoice Number','Customer Order','Reference','Order Status','Invoice Date','Freight Carrier','Product Code','Description','Qty Shipped','Tracking Link (Paste in browser)')
+colnames(prodtype)<-c('Product Code','Type')
+
+#Add the tracking link column
+rawexport['Tracking Link (Paste in browser)']=""
+rawexport['Tracking Link (Paste in browser)']<-c(paste0(rawtable$`Tracking URL`,rawtable$`Consignment Number`))
+rawexport<-rawexport%>%mutate(`Order Status` = str_replace(`Order Status`,"Entered","Part Shipped"))
+```
+
+```{r Stockdespatches}
+despatches<-merge(rawexport,prodtype, by = 'Product Code')%>%.[c(2,3,4,5,6,7,1,9,10,8,11,12)]
+despatches<-subset(despatches,despatches$'Freight Carrier' == "Post Haste")%>%filter(.,Type != "I" & `Qty Shipped` > 0)
+```
+
+```{r Backorders}
+backorders<-read_xls("C:\\Users\\Darren\\Desktop\\All backorders general.xls")%>%setnames(.,"...19","Customer Code")%>%.[c(1,3,5,6,7,11,18)]%>%as.data.frame(.)
+```
+
+```{r Export, include = FALSE}
+# Create .xlsx file
+rundate<-today()
+despatches %>% .[1:11] %>%
+  group_by(`Customer Code`) %>% 
+  group_walk(~ write_xlsx(.x,paste0("\\\\10.103.128.1\\cpsldata\\CPS Master Docs\\CPS DAILY MASTER DOCS\\Weekly despatch report\\",.y$`Customer Code`," Weekly Despatch Report ",format(rundate, format="%d %m %Y"),".xlsx")))
+
+backorders %>%
+  group_by(`CUSTOMER`) %>% 
+  group_walk(~ write_xlsx(.x,paste0("\\\\10.103.128.1\\cpsldata\\CPS Master Docs\\CPS DAILY MASTER DOCS\\Weekly despatch report\\",.y$`CUSTOMER`," Weekly Backorder Report ",format(rundate, format="%d %m %Y"),".xlsx")))
+```
+
+
+
+
+#Still to do
+
+#1. Hyperlinks #2. Build email automatically #3. HTML table?
+
+```{r Alldespatches}
+#despatches<-merge(rawexport,prodtype, by = 'Product Code')%>%.[c(2,3,4,5,6,7,1,9,10,8,11,12)]
+#indents<-left_join(dropship,couriers, by = c("Freight Provider ID" = "Code"))%>%mutate(.,'Tracking Link' = paste(.$URL,.$`Tracking No.`))%>%.[-8]
+#inddespatch<-seq_along(which(despatchall$Type == "I"))
+#despatchall<-left_join(despatches,indents, by = c("Invoice Number" = "Sales Order"))
+
+#for(i in inddespatch){replace(despatchall$`Tracking Link (Paste in browser)`[i],despatchall$`Tracking Link`)[i]}
+```
+

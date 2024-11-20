@@ -1,0 +1,20 @@
+```{r file.reader, include = FALSE}
+sheets<-c("No Sales", "Overstocked")
+
+lastmonth<-lapply(sheets, function (x) read_excel(file.choose(), sheet = x))%>%reduce(full_join)%>%as_tibble()
+thismonth<-lapply(sheets, function (x) read_excel(file.choose(), sheet = x))%>%reduce(full_join)%>%as_tibble()
+
+newcodes<-setdiff(thismonth[9],lastmonth[9])#%>%write_xlsx("C:\\Users\\Darren\\Desktop\\Slob changes.xlsx")
+dropouts<-setdiff(lastmonth[9],thismonth[9])
+
+newslob<-rbind(lastmonth,thismonth)%>%left_join(newcodes,.)
+write_xlsx(newslob,"\\\\10.103.128.1\\cpsldata\\Jess\\Monthly Reports\\New Slob.xlsx")
+```
+
+
+lastmonth$PRODUCT %in% unlist(newcodes)
+
+%>%filter(., by == which(lastmonth$PRODUCT %in% unlist(newcodes)))
+
+for (i in seq_along(newslob$PRODUCT)) {lastmonth$PRODUCT %in% newslob$PRODUCT[i]}
+
